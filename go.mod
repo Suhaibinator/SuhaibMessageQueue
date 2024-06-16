@@ -1,4 +1,4 @@
-module SuhaibMessageQueue
+module github.com/Suhaibinator/SuhaibMessageQueue
 
 go 1.21.5
 

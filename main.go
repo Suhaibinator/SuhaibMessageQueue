@@ -6,8 +6,8 @@ import (
 	"log"
 	"net"
 
-	"SuhaibMessageQueue/database"
-	pb "SuhaibMessageQueue/proto"
+	pb "github.com/Suhaibinator/SuhaibMessageQueue/proto"
+	"github.com/Suhaibinator/SuhaibMessageQueue/server/database"
 
 	_ "github.com/mattn/go-sqlite3"
 	"google.golang.org/grpc"
