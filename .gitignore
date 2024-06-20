@@ -1,0 +1,4 @@
+__debug_bin*
+dbtest.db
+dbtest.db-shm
+dbtest.db-wal

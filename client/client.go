@@ -30,18 +30,54 @@ func NewClient(address, port string) (*Client, error) {
 
 // Produce sends a message to the server
 func (c *Client) Produce(topic string, message []byte) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 	defer cancel()
 
 	_, err := c.client.Produce(ctx, &pb.ProduceRequest{Topic: topic, Message: message})
 	return err
 }
 
-func (c *Client) Consume(topic string, function func([]byte, int64) error) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+// StreamProduce sends a stream of messages to the server
+func (c *Client) StreamProduce(topic string, function func() ([]byte, error)) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 	defer cancel()
 
-	stream, err := c.client.Consume(ctx, &pb.ConsumeRequest{Topic: topic})
+	stream, err := c.client.StreamProduce(ctx)
+	if err != nil {
+		return err
+	}
+
+	for {
+		message, err := function()
+		if err != nil {
+			return err
+		}
+
+		err = stream.Send(&pb.ProduceRequest{Topic: topic, Message: message})
+		if err != nil {
+			return err
+		}
+	}
+
+}
+
+// Consume retrieves a message from the server
+func (c *Client) Consume(topic string, offset int64) ([]byte, int64, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+	defer cancel()
+
+	response, err := c.client.Consume(ctx, &pb.ConsumeRequest{Topic: topic, Offset: offset})
+	if err != nil {
+		return nil, -1, err
+	}
+	return response.Message, response.Offset, nil
+}
+
+func (c *Client) StreamConsume(topic string, startOffset int64, function func([]byte, int64) error) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+	defer cancel()
+
+	stream, err := c.client.StreamConsume(ctx, &pb.ConsumeRequest{Topic: topic, Offset: startOffset})
 	if err != nil {
 		return err
 	}
@@ -66,4 +102,27 @@ func (c *Client) Consume(topic string, function func([]byte, int64) error) error
 	}
 
 	return nil
+}
+
+// CreateTopic creates a new topic on the server
+func (c *Client) CreateTopic(topic string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	_, err := c.client.CreateTopic(ctx, &pb.CreateTopicRequest{Topic: topic})
+	return err
+}
+
+// Close closes the connection to the server
+func (c *Client) Close() {
+	c.conn.Close()
+}
+
+// DeleteUntilOffset deletes all messages in a topic until a certain offset
+func (c *Client) DeleteUntilOffset(topic string, offset int64) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	_, err := c.client.DeleteUntilOffset(ctx, &pb.DeleteUntilOffsetRequest{Topic: topic, Offset: offset})
+	return err
 }

@@ -9,8 +9,15 @@ service SuhaibMessageQueue {
     rpc Connect (ConnectRequest) returns (ConnectResponse) {}
     rpc GetLatestOffset (GetLatestOffsetRequest) returns (GetLatestOffsetResponse) {}
     rpc CreateTopic (CreateTopicRequest) returns (CreateTopicResponse) {}
+    
+    // Single message versions
     rpc Produce (ProduceRequest) returns (ProduceResponse) {}
-    rpc Consume (ConsumeRequest) returns (stream ConsumeResponse) {}
+    rpc Consume (ConsumeRequest) returns (ConsumeResponse) {}
+    
+    // Stream versions
+    rpc StreamProduce (stream ProduceRequest) returns (ProduceResponse) {}
+    rpc StreamConsume (ConsumeRequest) returns (stream ConsumeResponse) {}
+
     rpc DeleteUntilOffset (DeleteUntilOffsetRequest) returns (DeleteUntilOffsetResponse) {}
 }
 

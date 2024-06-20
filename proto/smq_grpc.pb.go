@@ -21,8 +21,12 @@ type SuhaibMessageQueueClient interface {
 	Connect(ctx context.Context, in *ConnectRequest, opts ...grpc.CallOption) (*ConnectResponse, error)
 	GetLatestOffset(ctx context.Context, in *GetLatestOffsetRequest, opts ...grpc.CallOption) (*GetLatestOffsetResponse, error)
 	CreateTopic(ctx context.Context, in *CreateTopicRequest, opts ...grpc.CallOption) (*CreateTopicResponse, error)
+	// Single message versions
 	Produce(ctx context.Context, in *ProduceRequest, opts ...grpc.CallOption) (*ProduceResponse, error)
-	Consume(ctx context.Context, in *ConsumeRequest, opts ...grpc.CallOption) (SuhaibMessageQueue_ConsumeClient, error)
+	Consume(ctx context.Context, in *ConsumeRequest, opts ...grpc.CallOption) (*ConsumeResponse, error)
+	// Stream versions
+	StreamProduce(ctx context.Context, opts ...grpc.CallOption) (SuhaibMessageQueue_StreamProduceClient, error)
+	StreamConsume(ctx context.Context, in *ConsumeRequest, opts ...grpc.CallOption) (SuhaibMessageQueue_StreamConsumeClient, error)
 	DeleteUntilOffset(ctx context.Context, in *DeleteUntilOffsetRequest, opts ...grpc.CallOption) (*DeleteUntilOffsetResponse, error)
 }
 
@@ -70,12 +74,55 @@ func (c *suhaibMessageQueueClient) Produce(ctx context.Context, in *ProduceReque
 	return out, nil
 }
 
-func (c *suhaibMessageQueueClient) Consume(ctx context.Context, in *ConsumeRequest, opts ...grpc.CallOption) (SuhaibMessageQueue_ConsumeClient, error) {
-	stream, err := c.cc.NewStream(ctx, &SuhaibMessageQueue_ServiceDesc.Streams[0], "/smq.SuhaibMessageQueue/Consume", opts...)
+func (c *suhaibMessageQueueClient) Consume(ctx context.Context, in *ConsumeRequest, opts ...grpc.CallOption) (*ConsumeResponse, error) {
+	out := new(ConsumeResponse)
+	err := c.cc.Invoke(ctx, "/smq.SuhaibMessageQueue/Consume", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &suhaibMessageQueueConsumeClient{stream}
+	return out, nil
+}
+
+func (c *suhaibMessageQueueClient) StreamProduce(ctx context.Context, opts ...grpc.CallOption) (SuhaibMessageQueue_StreamProduceClient, error) {
+	stream, err := c.cc.NewStream(ctx, &SuhaibMessageQueue_ServiceDesc.Streams[0], "/smq.SuhaibMessageQueue/StreamProduce", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &suhaibMessageQueueStreamProduceClient{stream}
+	return x, nil
+}
+
+type SuhaibMessageQueue_StreamProduceClient interface {
+	Send(*ProduceRequest) error
+	CloseAndRecv() (*ProduceResponse, error)
+	grpc.ClientStream
+}
+
+type suhaibMessageQueueStreamProduceClient struct {
+	grpc.ClientStream
+}
+
+func (x *suhaibMessageQueueStreamProduceClient) Send(m *ProduceRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *suhaibMessageQueueStreamProduceClient) CloseAndRecv() (*ProduceResponse, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(ProduceResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *suhaibMessageQueueClient) StreamConsume(ctx context.Context, in *ConsumeRequest, opts ...grpc.CallOption) (SuhaibMessageQueue_StreamConsumeClient, error) {
+	stream, err := c.cc.NewStream(ctx, &SuhaibMessageQueue_ServiceDesc.Streams[1], "/smq.SuhaibMessageQueue/StreamConsume", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &suhaibMessageQueueStreamConsumeClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -85,16 +132,16 @@ func (c *suhaibMessageQueueClient) Consume(ctx context.Context, in *ConsumeReque
 	return x, nil
 }
 
-type SuhaibMessageQueue_ConsumeClient interface {
+type SuhaibMessageQueue_StreamConsumeClient interface {
 	Recv() (*ConsumeResponse, error)
 	grpc.ClientStream
 }
 
-type suhaibMessageQueueConsumeClient struct {
+type suhaibMessageQueueStreamConsumeClient struct {
 	grpc.ClientStream
 }
 
-func (x *suhaibMessageQueueConsumeClient) Recv() (*ConsumeResponse, error) {
+func (x *suhaibMessageQueueStreamConsumeClient) Recv() (*ConsumeResponse, error) {
 	m := new(ConsumeResponse)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -118,8 +165,12 @@ type SuhaibMessageQueueServer interface {
 	Connect(context.Context, *ConnectRequest) (*ConnectResponse, error)
 	GetLatestOffset(context.Context, *GetLatestOffsetRequest) (*GetLatestOffsetResponse, error)
 	CreateTopic(context.Context, *CreateTopicRequest) (*CreateTopicResponse, error)
+	// Single message versions
 	Produce(context.Context, *ProduceRequest) (*ProduceResponse, error)
-	Consume(*ConsumeRequest, SuhaibMessageQueue_ConsumeServer) error
+	Consume(context.Context, *ConsumeRequest) (*ConsumeResponse, error)
+	// Stream versions
+	StreamProduce(SuhaibMessageQueue_StreamProduceServer) error
+	StreamConsume(*ConsumeRequest, SuhaibMessageQueue_StreamConsumeServer) error
 	DeleteUntilOffset(context.Context, *DeleteUntilOffsetRequest) (*DeleteUntilOffsetResponse, error)
 	mustEmbedUnimplementedSuhaibMessageQueueServer()
 }
@@ -140,8 +191,14 @@ func (UnimplementedSuhaibMessageQueueServer) CreateTopic(context.Context, *Creat
 func (UnimplementedSuhaibMessageQueueServer) Produce(context.Context, *ProduceRequest) (*ProduceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Produce not implemented")
 }
-func (UnimplementedSuhaibMessageQueueServer) Consume(*ConsumeRequest, SuhaibMessageQueue_ConsumeServer) error {
-	return status.Errorf(codes.Unimplemented, "method Consume not implemented")
+func (UnimplementedSuhaibMessageQueueServer) Consume(context.Context, *ConsumeRequest) (*ConsumeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Consume not implemented")
+}
+func (UnimplementedSuhaibMessageQueueServer) StreamProduce(SuhaibMessageQueue_StreamProduceServer) error {
+	return status.Errorf(codes.Unimplemented, "method StreamProduce not implemented")
+}
+func (UnimplementedSuhaibMessageQueueServer) StreamConsume(*ConsumeRequest, SuhaibMessageQueue_StreamConsumeServer) error {
+	return status.Errorf(codes.Unimplemented, "method StreamConsume not implemented")
 }
 func (UnimplementedSuhaibMessageQueueServer) DeleteUntilOffset(context.Context, *DeleteUntilOffsetRequest) (*DeleteUntilOffsetResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteUntilOffset not implemented")
@@ -231,24 +288,68 @@ func _SuhaibMessageQueue_Produce_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
-func _SuhaibMessageQueue_Consume_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _SuhaibMessageQueue_Consume_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConsumeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SuhaibMessageQueueServer).Consume(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/smq.SuhaibMessageQueue/Consume",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SuhaibMessageQueueServer).Consume(ctx, req.(*ConsumeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SuhaibMessageQueue_StreamProduce_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(SuhaibMessageQueueServer).StreamProduce(&suhaibMessageQueueStreamProduceServer{stream})
+}
+
+type SuhaibMessageQueue_StreamProduceServer interface {
+	SendAndClose(*ProduceResponse) error
+	Recv() (*ProduceRequest, error)
+	grpc.ServerStream
+}
+
+type suhaibMessageQueueStreamProduceServer struct {
+	grpc.ServerStream
+}
+
+func (x *suhaibMessageQueueStreamProduceServer) SendAndClose(m *ProduceResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *suhaibMessageQueueStreamProduceServer) Recv() (*ProduceRequest, error) {
+	m := new(ProduceRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func _SuhaibMessageQueue_StreamConsume_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(ConsumeRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(SuhaibMessageQueueServer).Consume(m, &suhaibMessageQueueConsumeServer{stream})
+	return srv.(SuhaibMessageQueueServer).StreamConsume(m, &suhaibMessageQueueStreamConsumeServer{stream})
 }
 
-type SuhaibMessageQueue_ConsumeServer interface {
+type SuhaibMessageQueue_StreamConsumeServer interface {
 	Send(*ConsumeResponse) error
 	grpc.ServerStream
 }
 
-type suhaibMessageQueueConsumeServer struct {
+type suhaibMessageQueueStreamConsumeServer struct {
 	grpc.ServerStream
 }
 
-func (x *suhaibMessageQueueConsumeServer) Send(m *ConsumeResponse) error {
+func (x *suhaibMessageQueueStreamConsumeServer) Send(m *ConsumeResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -294,14 +395,23 @@ var SuhaibMessageQueue_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _SuhaibMessageQueue_Produce_Handler,
 		},
 		{
+			MethodName: "Consume",
+			Handler:    _SuhaibMessageQueue_Consume_Handler,
+		},
+		{
 			MethodName: "DeleteUntilOffset",
 			Handler:    _SuhaibMessageQueue_DeleteUntilOffset_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "Consume",
-			Handler:       _SuhaibMessageQueue_Consume_Handler,
+			StreamName:    "StreamProduce",
+			Handler:       _SuhaibMessageQueue_StreamProduce_Handler,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "StreamConsume",
+			Handler:       _SuhaibMessageQueue_StreamConsume_Handler,
 			ServerStreams: true,
 		},
 	},

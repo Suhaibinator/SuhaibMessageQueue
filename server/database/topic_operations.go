@@ -3,11 +3,10 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 )
-
-const MAX_MESSAGES_PER_TX = 100
 
 type Topic struct {
 	name                          string
@@ -20,8 +19,7 @@ type Topic struct {
 	getMessageAtOffsetStmt        *sql.Stmt
 	deleteMessagesUntilOffsetStmt *sql.Stmt
 	addMessageStmt                *sql.Stmt
-	addMessagesTx                 *sql.Tx
-	messagesInTx                  int
+	messagesChannel               chan []byte
 }
 
 func (d *DBDriver) newTopic(db *sql.DB, topic string) (*Topic, error) {
@@ -37,7 +35,7 @@ func (d *DBDriver) newTopic(db *sql.DB, topic string) (*Topic, error) {
 		return nil, err
 	}
 
-	getLatestMessage, err := db.Prepare("SELECT data FROM " + topic + " ORDER BY offset DESC LIMIT 1")
+	getLatestMessage, err := db.Prepare("SELECT data, offset FROM " + topic + " ORDER BY offset DESC LIMIT 1")
 	if err != nil {
 		return nil, err
 	}
@@ -62,6 +60,20 @@ func (d *DBDriver) newTopic(db *sql.DB, topic string) (*Topic, error) {
 		return nil, err
 	}
 
+	messagesChannel := make(chan []byte)
+
+	go func() {
+		for {
+			message := <-messagesChannel
+			d.dbMux.Lock()
+			_, err := addMessage.Exec(message)
+			d.dbMux.Unlock()
+			if err != nil {
+				log.Println("Error adding message to topic", err)
+			}
+		}
+	}()
+
 	return &Topic{
 		name:                          topic,
 		db:                            db,
@@ -73,6 +85,7 @@ func (d *DBDriver) newTopic(db *sql.DB, topic string) (*Topic, error) {
 		getMessageAtOffsetStmt:        getMessageAtOffset,
 		deleteMessagesUntilOffsetStmt: deleteMessagesUntilOffset,
 		addMessageStmt:                addMessage,
+		messagesChannel:               messagesChannel,
 	}, nil
 }
 
@@ -86,7 +99,7 @@ func (t *Topic) getLatestOffset() (int64, error) {
 			// No rows were returned - this means the topic is empty
 			return 0, nil
 		}
-		return -1, fmt.Errorf("Error retrieving from topic: %v", err)
+		return -1, fmt.Errorf("error retrieving from topic: %v", err)
 	}
 	return offset, nil
 }
@@ -101,24 +114,25 @@ func (t *Topic) getEarliestOffset() (int64, error) {
 			// No rows were returned - this means the topic is empty
 			return 0, nil
 		}
-		return -1, fmt.Errorf("Error retrieving from topic: %v", err)
+		return -1, fmt.Errorf("error retrieving from topic: %v", err)
 	}
 	return offset, nil
 }
 
-func (t *Topic) getLatestMessage() ([]byte, error) {
+func (t *Topic) getLatestMessage() ([]byte, int64, error) {
 	var data []byte
+	var offset int64
 	t.dbMux.RLock()
 	defer t.dbMux.RUnlock()
-	err := t.getLatestMessageStmt.QueryRow().Scan(&data)
+	err := t.getLatestMessageStmt.QueryRow().Scan(&data, &offset)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// No rows were returned - this means the topic is empty
-			return nil, nil
+			return nil, 0, nil
 		}
-		return nil, fmt.Errorf("Error retrieving from topic: %v", err)
+		return nil, -1, fmt.Errorf("error retrieving from topic: %v", err)
 	}
-	return data, nil
+	return data, offset, nil
 }
 
 func (t *Topic) getEarliestMessage() ([]byte, int64, time.Time, error) {
@@ -133,7 +147,7 @@ func (t *Topic) getEarliestMessage() ([]byte, int64, time.Time, error) {
 			// No rows were returned - this means the topic is empty
 			return nil, 0, time, nil
 		}
-		return nil, -1, time, fmt.Errorf("Error retrieving from topic: %v", err)
+		return nil, -1, time, fmt.Errorf("error retrieving from topic: %v", err)
 	}
 	return data, offset, time, nil
 }
@@ -148,7 +162,7 @@ func (t *Topic) getMessageAtOffset(offset int64) ([]byte, error) {
 			// No rows were returned - this means the offset does not exist
 			return nil, nil
 		}
-		return nil, fmt.Errorf("Error retrieving from topic: %v", err)
+		return nil, fmt.Errorf("error retrieving from topic: %v", err)
 	}
 	return data, nil
 }
@@ -158,7 +172,7 @@ func (t *Topic) deleteMessagesUntilOffset(offset int64) error {
 	defer t.dbMux.Unlock()
 	_, err := t.deleteMessagesUntilOffsetStmt.Exec(offset)
 	if err != nil {
-		return fmt.Errorf("Error deleting from topic: %v", err)
+		return fmt.Errorf("error deleting from topic: %v", err)
 	}
 	return nil
 }
@@ -183,29 +197,6 @@ func (t *Topic) closeTopic() error {
 }
 
 func (t *Topic) addMessage(data []byte) error {
-	if t.addMessagesTx == nil {
-		tx, err := t.db.Begin()
-		if err != nil {
-			return err
-		}
-		t.addMessagesTx = tx
-		t.messagesInTx = 0
-	}
-
-	t.dbMux.Lock()
-	defer t.dbMux.Unlock()
-
-	_, err := t.addMessagesTx.Stmt(t.addMessageStmt).Exec(data)
-	if err != nil {
-		return err
-	}
-	t.messagesInTx += 1
-	if t.messagesInTx == MAX_MESSAGES_PER_TX {
-		err = t.addMessagesTx.Commit()
-		if err != nil {
-			return err
-		}
-		t.addMessagesTx = nil
-	}
+	t.messagesChannel <- data
 	return nil
 }
