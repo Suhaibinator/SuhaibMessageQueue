@@ -12,8 +12,8 @@ const (
 
 var (
 	// DBPath is the path to the SQLite database file
-	DBPath = "dbtest.db"
-	Port   = "8080"
+	DBPath = "/db/dbtest.db"
+	Port   = "8097"
 )
 
 func init() {
