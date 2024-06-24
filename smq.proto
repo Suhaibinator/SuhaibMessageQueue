@@ -8,6 +8,7 @@ option go_package = "./proto";
 service SuhaibMessageQueue {
     rpc Connect (ConnectRequest) returns (ConnectResponse) {}
     rpc GetLatestOffset (GetLatestOffsetRequest) returns (GetLatestOffsetResponse) {}
+    rpc GetEarliestOffset (GetLatestOffsetRequest) returns (GetLatestOffsetResponse) {}
     rpc CreateTopic (CreateTopicRequest) returns (CreateTopicResponse) {}
     
     // Single message versions
@@ -32,6 +33,14 @@ message GetLatestOffsetRequest {
 }
 
 message GetLatestOffsetResponse {
+    int64 offset = 1;
+}
+
+message GetEarliestOffsetRequest {
+    string topic = 1;
+}
+
+message GetEarliestOffsetResponse {
     int64 offset = 1;
 }
 

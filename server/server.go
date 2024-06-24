@@ -6,6 +6,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/Suhaibinator/SuhaibMessageQueue/config"
 	pb "github.com/Suhaibinator/SuhaibMessageQueue/proto"
 	"github.com/Suhaibinator/SuhaibMessageQueue/server/database"
 	"google.golang.org/grpc"
@@ -90,13 +91,29 @@ func (s *Server) CreateTopic(ctx context.Context, tr *pb.CreateTopicRequest) (*p
 	return &pb.CreateTopicResponse{}, nil
 }
 
+func (s *Server) GetEarliestMessageFromTopic(ctx context.Context, gr *pb.GetEarliestOffsetRequest) (*pb.GetEarliestOffsetResponse, error) {
+	_, offset, err := s.driver.GetEarliestMessageFromTopic(gr.Topic)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.GetEarliestOffsetResponse{Offset: offset}, nil
+}
+
+func (s *Server) GetLatestMessageFromTopic(ctx context.Context, gr *pb.GetLatestOffsetRequest) (*pb.GetLatestOffsetResponse, error) {
+	_, offset, err := s.driver.GetLatestMessageFromTopic(gr.Topic)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.GetLatestOffsetResponse{Offset: offset}, nil
+}
+
 func (s *Server) Close() {
 	s.grpcServer.Stop()
 	s.driver.Close()
 }
 
 func NewServer(port string) *Server {
-	driver, err := database.NewDBDriver()
+	driver, err := database.NewDBDriver(config.DBPath)
 	if err != nil {
 		log.Fatalf("failed to create database driver: %v", err)
 	}

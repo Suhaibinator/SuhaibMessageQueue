@@ -61,6 +61,38 @@ func (c *Client) StreamProduce(topic string, function func() ([]byte, error)) er
 
 }
 
+func (c *Client) ConsumeEarliest(topic string) ([]byte, int64, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+	defer cancel()
+
+	response, err := c.client.GetEarliestOffset(ctx, &pb.GetLatestOffsetRequest{Topic: topic})
+	if err != nil {
+		return nil, -1, err
+	}
+
+	messageResponse, err := c.client.Consume(ctx, &pb.ConsumeRequest{Topic: topic, Offset: response.Offset})
+	if err != nil {
+		return nil, -1, err
+	}
+	return messageResponse.Message, response.Offset, err
+}
+
+func (c *Client) ConsumeLatest(topic string) ([]byte, int64, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+	defer cancel()
+
+	response, err := c.client.GetLatestOffset(ctx, &pb.GetLatestOffsetRequest{Topic: topic})
+	if err != nil {
+		return nil, -1, err
+	}
+
+	messageResponse, err := c.client.Consume(ctx, &pb.ConsumeRequest{Topic: topic, Offset: response.Offset})
+	if err != nil {
+		return nil, -1, err
+	}
+	return messageResponse.Message, response.Offset, err
+}
+
 // Consume retrieves a message from the server
 func (c *Client) Consume(topic string, offset int64) ([]byte, int64, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)

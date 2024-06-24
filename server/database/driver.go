@@ -18,8 +18,8 @@ type DBDriver struct {
 	dbMux     *sync.RWMutex
 }
 
-func NewDBDriver() (*DBDriver, error) {
-	db, err := sql.Open("sqlite3", "dbtest.db")
+func NewDBDriver(db_path string) (*DBDriver, error) {
+	db, err := sql.Open("sqlite3", db_path)
 	if err != nil {
 		return nil, err
 	}
