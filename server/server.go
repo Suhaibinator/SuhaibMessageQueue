@@ -6,7 +6,6 @@ import (
 	"net"
 	"time"
 
-	"github.com/Suhaibinator/SuhaibMessageQueue/config"
 	pb "github.com/Suhaibinator/SuhaibMessageQueue/proto"
 	"github.com/Suhaibinator/SuhaibMessageQueue/server/database"
 	"google.golang.org/grpc"
@@ -112,8 +111,8 @@ func (s *Server) Close() {
 	s.Driver.Close()
 }
 
-func NewServer(port string) *Server {
-	driver, err := database.NewDBDriver(config.DBPath)
+func NewServer(port, dbPath string) *Server {
+	driver, err := database.NewDBDriver(dbPath)
 	if err != nil {
 		log.Fatalf("failed to create database driver: %v", err)
 	}

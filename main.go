@@ -7,7 +7,7 @@ import (
 
 func main() {
 
-	server := server.NewServer(config.Port)
+	server := server.NewServer(config.Port, config.DBPath)
 	server.Start()
 
 }
