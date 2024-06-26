@@ -84,7 +84,7 @@ func (d *DBDriver) CreateTopic(topic string) error {
 	d.dbMux.Lock()
 	defer d.dbMux.Unlock()
 
-	query := fmt.Sprintf(`CREATE TABLE %s (
+	query := fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (
 		offset INTEGER PRIMARY KEY AUTOINCREMENT,
 		time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 		data BLOB
