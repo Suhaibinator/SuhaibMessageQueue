@@ -14,14 +14,14 @@ import (
 
 type Server struct {
 	pb.UnimplementedSuhaibMessageQueueServer
-	driver     *database.DBDriver
+	Driver     *database.DBDriver
 	grpcServer *grpc.Server
 
 	port string
 }
 
 func (s *Server) Produce(ctx context.Context, pr *pb.ProduceRequest) (*pb.ProduceResponse, error) {
-	err := s.driver.AddMessageToTopic(pr.Topic, pr.Message)
+	err := s.Driver.AddMessageToTopic(pr.Topic, pr.Message)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +37,7 @@ func (s *Server) StreamProducer(sp pb.SuhaibMessageQueue_StreamProduceServer) er
 		}
 
 		// Add the message to the topic
-		err = s.driver.AddMessageToTopic(message.Topic, message.Message)
+		err = s.Driver.AddMessageToTopic(message.Topic, message.Message)
 		if err != nil {
 			return err
 		}
@@ -45,7 +45,7 @@ func (s *Server) StreamProducer(sp pb.SuhaibMessageQueue_StreamProduceServer) er
 }
 
 func (s *Server) Consume(ctx context.Context, cr *pb.ConsumeRequest) (*pb.ConsumeResponse, error) {
-	message, err := s.driver.GetMessageAtOffset(cr.Topic, cr.Offset)
+	message, err := s.Driver.GetMessageAtOffset(cr.Topic, cr.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func (s *Server) streamMessages(topic string, cs pb.SuhaibMessageQueue_StreamCon
 
 	for {
 		// Get the message at the current offset
-		message, err := s.driver.GetMessageAtOffset(topic, offset)
+		message, err := s.Driver.GetMessageAtOffset(topic, offset)
 		if err != nil {
 			return err
 		}
@@ -84,7 +84,7 @@ func (s *Server) streamMessages(topic string, cs pb.SuhaibMessageQueue_StreamCon
 }
 
 func (s *Server) CreateTopic(ctx context.Context, tr *pb.CreateTopicRequest) (*pb.CreateTopicResponse, error) {
-	err := s.driver.CreateTopic(tr.Topic)
+	err := s.Driver.CreateTopic(tr.Topic)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func (s *Server) CreateTopic(ctx context.Context, tr *pb.CreateTopicRequest) (*p
 }
 
 func (s *Server) GetEarliestMessageFromTopic(ctx context.Context, gr *pb.GetEarliestOffsetRequest) (*pb.GetEarliestOffsetResponse, error) {
-	_, offset, err := s.driver.GetEarliestMessageFromTopic(gr.Topic)
+	_, offset, err := s.Driver.GetEarliestMessageFromTopic(gr.Topic)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +100,7 @@ func (s *Server) GetEarliestMessageFromTopic(ctx context.Context, gr *pb.GetEarl
 }
 
 func (s *Server) GetLatestMessageFromTopic(ctx context.Context, gr *pb.GetLatestOffsetRequest) (*pb.GetLatestOffsetResponse, error) {
-	_, offset, err := s.driver.GetLatestMessageFromTopic(gr.Topic)
+	_, offset, err := s.Driver.GetLatestMessageFromTopic(gr.Topic)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +109,7 @@ func (s *Server) GetLatestMessageFromTopic(ctx context.Context, gr *pb.GetLatest
 
 func (s *Server) Close() {
 	s.grpcServer.Stop()
-	s.driver.Close()
+	s.Driver.Close()
 }
 
 func NewServer(port string) *Server {
@@ -119,10 +119,10 @@ func NewServer(port string) *Server {
 	}
 
 	grpcServer := grpc.NewServer()
-	pb.RegisterSuhaibMessageQueueServer(grpcServer, &Server{driver: driver})
+	pb.RegisterSuhaibMessageQueueServer(grpcServer, &Server{Driver: driver})
 
 	return &Server{
-		driver:     driver,
+		Driver:     driver,
 		grpcServer: grpcServer,
 		port:       port,
 	}
@@ -140,7 +140,7 @@ func (s *Server) Start() {
 }
 
 func (s *Server) DeleteUntilOffset(ctx context.Context, dr *pb.DeleteUntilOffsetRequest) (*pb.DeleteUntilOffsetResponse, error) {
-	err := s.driver.DeleteMessagesUntilOffset(dr.Topic, dr.Offset)
+	err := s.Driver.DeleteMessagesUntilOffset(dr.Topic, dr.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -148,5 +148,5 @@ func (s *Server) DeleteUntilOffset(ctx context.Context, dr *pb.DeleteUntilOffset
 }
 
 func (s *Server) Debug() {
-	s.driver.Debug()
+	s.Driver.Debug()
 }
