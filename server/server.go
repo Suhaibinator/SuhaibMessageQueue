@@ -117,7 +117,10 @@ func NewServer(port, dbPath string) *Server {
 		log.Fatalf("failed to create database driver: %v", err)
 	}
 
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(
+		grpc.MaxRecvMsgSize(1024*1024*1024),
+		grpc.MaxSendMsgSize(1024*1024*1024),
+	)
 	pb.RegisterSuhaibMessageQueueServer(grpcServer, &Server{Driver: driver})
 
 	return &Server{

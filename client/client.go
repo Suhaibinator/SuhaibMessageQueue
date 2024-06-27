@@ -19,7 +19,7 @@ type Client struct {
 
 // NewClient creates a new client
 func NewClient(address, port string) (*Client, error) {
-	conn, err := grpc.NewClient(address+":"+port, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(address+":"+port, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(1024*1024*1024), grpc.MaxCallSendMsgSize(1024*1024*1024)))
 	if err != nil {
 		return nil, err
 	}
