@@ -50,6 +50,7 @@ func (c *Client) StreamProduce(topic string, function func() ([]byte, error)) er
 	for {
 		message, err := function()
 		if err != nil {
+			stream.CloseSend()
 			return err
 		}
 
@@ -128,6 +129,7 @@ func (c *Client) StreamConsume(topic string, startOffset int64, function func([]
 		// For example, you can print it to the console:
 		err = function(response.Message, response.Offset)
 		if err != nil {
+			stream.CloseSend()
 			return err
 		}
 
