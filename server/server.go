@@ -6,6 +6,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/Suhaibinator/SuhaibMessageQueue/config"
 	pb "github.com/Suhaibinator/SuhaibMessageQueue/proto"
 	"github.com/Suhaibinator/SuhaibMessageQueue/server/database"
 	"google.golang.org/grpc"
@@ -58,6 +59,7 @@ func (s *Server) StreamConsume(cr *pb.ConsumeRequest, cs pb.SuhaibMessageQueue_S
 func (s *Server) streamMessages(topic string, cs pb.SuhaibMessageQueue_StreamConsumeServer, startOffset int64) error {
 	offset := startOffset
 
+	consecutiveNoMessages := 0
 	for {
 		// Get the message at the current offset
 		message, err := s.Driver.GetMessageAtOffset(topic, offset)
@@ -68,15 +70,22 @@ func (s *Server) streamMessages(topic string, cs pb.SuhaibMessageQueue_StreamCon
 		if message == nil {
 			log.Println("No messages at offset", offset)
 			time.Sleep(time.Second) // Wait for a second before trying again
-			continue
+			if consecutiveNoMessages < 10 {
+				consecutiveNoMessages++
+				continue
+			} else {
+				err = cs.Send(&pb.ConsumeResponse{Message: []byte{}, Offset: config.SPECIAL_OFFSET_HEARTBEAT})
+				if err != nil {
+					return err
+				}
+			}
 		}
 
 		// Send the message to the client
-		err = cs.Send(&pb.ConsumeResponse{Message: message, Offset: offset})
+		err = cs.Send(&pb.ConsumeResponse{Message: []byte{}, Offset: config.SPECIAL_OFFSET_HEARTBEAT})
 		if err != nil {
 			return err
 		}
-
 		// Increment the offset for the next iteration
 		offset++
 	}

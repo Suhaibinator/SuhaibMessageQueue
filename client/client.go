@@ -5,6 +5,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/Suhaibinator/SuhaibMessageQueue/config"
 	pb "github.com/Suhaibinator/SuhaibMessageQueue/proto"
 
 	"google.golang.org/grpc"
@@ -122,7 +123,10 @@ func (c *Client) StreamConsume(topic string, startOffset int64, function func([]
 		if err != nil {
 			return err
 		}
-
+		if response.Offset == config.SPECIAL_OFFSET_HEARTBEAT {
+			// Heartbeat
+			continue
+		}
 		// Process the message here.
 		// For example, you can print it to the console:
 		err = function(response.Message, response.Offset)
