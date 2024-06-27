@@ -39,8 +39,7 @@ func (c *Client) Produce(topic string, message []byte) error {
 
 // StreamProduce sends a stream of messages to the server
 func (c *Client) StreamProduce(topic string, function func() ([]byte, error)) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
-	defer cancel()
+	ctx := context.Background()
 
 	stream, err := c.client.StreamProduce(ctx)
 	if err != nil {
@@ -107,8 +106,7 @@ func (c *Client) Consume(topic string, offset int64) ([]byte, int64, error) {
 }
 
 func (c *Client) StreamConsume(topic string, startOffset int64, function func([]byte, int64) error) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
-	defer cancel()
+	ctx := context.Background()
 
 	stream, err := c.client.StreamConsume(ctx, &pb.ConsumeRequest{Topic: topic, Offset: startOffset})
 	if err != nil {
