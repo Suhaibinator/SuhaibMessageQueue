@@ -66,7 +66,7 @@ func (c *Client) ConsumeEarliest(topic string) ([]byte, int64, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 	defer cancel()
 
-	response, err := c.client.GetEarliestOffset(ctx, &pb.GetLatestOffsetRequest{Topic: topic})
+	response, err := c.client.GetEarliestOffset(ctx, &pb.GetEarliestOffsetRequest{Topic: topic})
 	if err != nil {
 		return nil, -1, err
 	}

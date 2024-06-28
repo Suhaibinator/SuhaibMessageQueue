@@ -124,6 +124,22 @@ func (s *Server) GetLatestMessageFromTopic(ctx context.Context, gr *pb.GetLatest
 	return &pb.GetLatestOffsetResponse{Offset: offset}, nil
 }
 
+func (s *Server) GetEarliestOffset(ctx context.Context, gr *pb.GetEarliestOffsetRequest) (*pb.GetEarliestOffsetResponse, error) {
+	offset, err := s.Driver.GetEarliestOffset(gr.Topic)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.GetEarliestOffsetResponse{Offset: offset}, nil
+}
+
+func (s *Server) GetLatestOffset(ctx context.Context, gr *pb.GetLatestOffsetRequest) (*pb.GetLatestOffsetResponse, error) {
+	offset, err := s.Driver.GetLatestOffset(gr.Topic)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.GetLatestOffsetResponse{Offset: offset}, nil
+}
+
 func (s *Server) Close() {
 	s.grpcServer.Stop()
 	s.Driver.Close()

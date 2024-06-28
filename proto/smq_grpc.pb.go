@@ -20,7 +20,7 @@ const _ = grpc.SupportPackageIsVersion7
 type SuhaibMessageQueueClient interface {
 	Connect(ctx context.Context, in *ConnectRequest, opts ...grpc.CallOption) (*ConnectResponse, error)
 	GetLatestOffset(ctx context.Context, in *GetLatestOffsetRequest, opts ...grpc.CallOption) (*GetLatestOffsetResponse, error)
-	GetEarliestOffset(ctx context.Context, in *GetLatestOffsetRequest, opts ...grpc.CallOption) (*GetLatestOffsetResponse, error)
+	GetEarliestOffset(ctx context.Context, in *GetEarliestOffsetRequest, opts ...grpc.CallOption) (*GetEarliestOffsetResponse, error)
 	CreateTopic(ctx context.Context, in *CreateTopicRequest, opts ...grpc.CallOption) (*CreateTopicResponse, error)
 	// Single message versions
 	Produce(ctx context.Context, in *ProduceRequest, opts ...grpc.CallOption) (*ProduceResponse, error)
@@ -57,8 +57,8 @@ func (c *suhaibMessageQueueClient) GetLatestOffset(ctx context.Context, in *GetL
 	return out, nil
 }
 
-func (c *suhaibMessageQueueClient) GetEarliestOffset(ctx context.Context, in *GetLatestOffsetRequest, opts ...grpc.CallOption) (*GetLatestOffsetResponse, error) {
-	out := new(GetLatestOffsetResponse)
+func (c *suhaibMessageQueueClient) GetEarliestOffset(ctx context.Context, in *GetEarliestOffsetRequest, opts ...grpc.CallOption) (*GetEarliestOffsetResponse, error) {
+	out := new(GetEarliestOffsetResponse)
 	err := c.cc.Invoke(ctx, "/smq.SuhaibMessageQueue/GetEarliestOffset", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -174,7 +174,7 @@ func (c *suhaibMessageQueueClient) DeleteUntilOffset(ctx context.Context, in *De
 type SuhaibMessageQueueServer interface {
 	Connect(context.Context, *ConnectRequest) (*ConnectResponse, error)
 	GetLatestOffset(context.Context, *GetLatestOffsetRequest) (*GetLatestOffsetResponse, error)
-	GetEarliestOffset(context.Context, *GetLatestOffsetRequest) (*GetLatestOffsetResponse, error)
+	GetEarliestOffset(context.Context, *GetEarliestOffsetRequest) (*GetEarliestOffsetResponse, error)
 	CreateTopic(context.Context, *CreateTopicRequest) (*CreateTopicResponse, error)
 	// Single message versions
 	Produce(context.Context, *ProduceRequest) (*ProduceResponse, error)
@@ -196,7 +196,7 @@ func (UnimplementedSuhaibMessageQueueServer) Connect(context.Context, *ConnectRe
 func (UnimplementedSuhaibMessageQueueServer) GetLatestOffset(context.Context, *GetLatestOffsetRequest) (*GetLatestOffsetResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetLatestOffset not implemented")
 }
-func (UnimplementedSuhaibMessageQueueServer) GetEarliestOffset(context.Context, *GetLatestOffsetRequest) (*GetLatestOffsetResponse, error) {
+func (UnimplementedSuhaibMessageQueueServer) GetEarliestOffset(context.Context, *GetEarliestOffsetRequest) (*GetEarliestOffsetResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetEarliestOffset not implemented")
 }
 func (UnimplementedSuhaibMessageQueueServer) CreateTopic(context.Context, *CreateTopicRequest) (*CreateTopicResponse, error) {
@@ -267,7 +267,7 @@ func _SuhaibMessageQueue_GetLatestOffset_Handler(srv interface{}, ctx context.Co
 }
 
 func _SuhaibMessageQueue_GetEarliestOffset_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetLatestOffsetRequest)
+	in := new(GetEarliestOffsetRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -279,7 +279,7 @@ func _SuhaibMessageQueue_GetEarliestOffset_Handler(srv interface{}, ctx context.
 		FullMethod: "/smq.SuhaibMessageQueue/GetEarliestOffset",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SuhaibMessageQueueServer).GetEarliestOffset(ctx, req.(*GetLatestOffsetRequest))
+		return srv.(SuhaibMessageQueueServer).GetEarliestOffset(ctx, req.(*GetEarliestOffsetRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
