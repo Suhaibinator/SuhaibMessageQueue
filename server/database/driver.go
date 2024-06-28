@@ -173,6 +173,17 @@ func (d *DBDriver) GetEarliestMessageFromTopic(topic string) ([]byte, int64, err
 	return message, offset, err
 }
 
+func (d *DBDriver) GetEarliestOffset(topic string) (int64, error) {
+	d.topicsMux.RLock()
+	topicObj, ok := d.topics[topic]
+	d.topicsMux.RUnlock()
+	if !ok {
+		return -1, fmt.Errorf("topic %s does not exist", topic)
+	}
+
+	return topicObj.getEarliestOffset()
+}
+
 func (d *DBDriver) GetLatestMessageFromTopic(topic string) ([]byte, int64, error) {
 	d.topicsMux.RLock()
 	topicObj, ok := d.topics[topic]
@@ -183,6 +194,17 @@ func (d *DBDriver) GetLatestMessageFromTopic(topic string) ([]byte, int64, error
 
 	message, offset, err := topicObj.getLatestMessage()
 	return message, offset, err
+}
+
+func (d *DBDriver) GetLatestOffset(topic string) (int64, error) {
+	d.topicsMux.RLock()
+	topicObj, ok := d.topics[topic]
+	d.topicsMux.RUnlock()
+	if !ok {
+		return -1, fmt.Errorf("topic %s does not exist", topic)
+	}
+
+	return topicObj.getLatestOffset()
 }
 
 func (d *DBDriver) GetMessageAtOffset(topic string, offset int64) ([]byte, error) {

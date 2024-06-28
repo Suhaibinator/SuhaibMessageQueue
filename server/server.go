@@ -57,7 +57,16 @@ func (s *Server) StreamConsume(cr *pb.ConsumeRequest, cs pb.SuhaibMessageQueue_S
 }
 
 func (s *Server) streamMessages(topic string, cs pb.SuhaibMessageQueue_StreamConsumeServer, startOffset int64) error {
+
+	earliestOffset, err := s.Driver.GetEarliestOffset(topic)
+
+	if err != nil {
+		return err
+	}
 	offset := startOffset
+	if startOffset < earliestOffset {
+		offset = earliestOffset
+	}
 
 	consecutiveNoMessages := 0
 	for {
