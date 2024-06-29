@@ -30,6 +30,7 @@ func NewDBDriver(db_path string) (*DBDriver, error) {
 		PRAGMA journal_mode=WAL;
 		PRAGMA synchronous=NORMAL;
 		PRAGMA cache_size=100000;
+		PRAGMA auto_vacuum=FULL;
 		`) // Unit is pages, each page is 1024 bytes
 	if err != nil {
 		return nil, err

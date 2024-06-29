@@ -69,7 +69,7 @@ func (d *DBDriver) newTopic(db *sql.DB, topic string) (*Topic, error) {
 			_, err := addMessage.Exec(message)
 			d.dbMux.Unlock()
 			if err != nil {
-				log.Println("Error adding message to topic", err)
+				log.Printf("Error adding message to topic %s: %e", topic, err)
 			}
 		}
 	}()

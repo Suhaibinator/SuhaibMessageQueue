@@ -81,17 +81,17 @@ func (s *Server) streamMessages(topic string, cs pb.SuhaibMessageQueue_StreamCon
 			time.Sleep(time.Second) // Wait for a second before trying again
 			if consecutiveNoMessages < 10 {
 				consecutiveNoMessages++
-				continue
 			} else {
 				err = cs.Send(&pb.ConsumeResponse{Message: []byte{}, Offset: config.SPECIAL_OFFSET_HEARTBEAT})
 				if err != nil {
 					return err
 				}
 			}
+			continue
 		}
 
 		// Send the message to the client
-		err = cs.Send(&pb.ConsumeResponse{Message: []byte{}, Offset: config.SPECIAL_OFFSET_HEARTBEAT})
+		err = cs.Send(&pb.ConsumeResponse{Message: message, Offset: offset})
 		if err != nil {
 			return err
 		}
