@@ -170,7 +170,7 @@ func (t *Topic) getEarliestMessage() ([]byte, int64, time.Time, error) {
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// No rows were returned - this means the topic is empty
-			return nil, 0, time, nil
+			return nil, 0, time, errors.NewErrorTopicEmpty(fmt.Sprintf("topic %s is empty", t.name))
 		}
 		return nil, -1, time, fmt.Errorf("error retrieving from topic: %v", err)
 	}
@@ -179,7 +179,7 @@ func (t *Topic) getEarliestMessage() ([]byte, int64, time.Time, error) {
 
 func (t *Topic) getMessageAtOffset(offset int64) ([]byte, error) {
 	if offset > t.maxOffset {
-		return nil, fmt.Errorf(errors.ErrOffsetGreaterThanLatest)
+		return nil, errors.NewErrOffsetGreaterThanLatest("trying to get message at offset greater than the latest offset")
 	}
 
 	var data []byte
@@ -189,7 +189,7 @@ func (t *Topic) getMessageAtOffset(offset int64) ([]byte, error) {
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// No rows were returned - this means the offset does not exist
-			return nil, nil
+			return nil, errors.NewErrOffsetGreaterThanLatest(fmt.Sprintf("offset %d does not exist for topic %s", offset, t.name))
 		}
 		return nil, fmt.Errorf("error retrieving from topic: %v", err)
 	}
