@@ -68,7 +68,7 @@ func (d *DBDriver) newTopic(db *sql.DB, topic string) (*Topic, error) {
 	var maxOffset int64
 	err = getLatestOffset.QueryRow().Scan(&maxOffset)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == sql.ErrNoRows || err.Error() == "sql: Scan error on column index 0, name \"MAX(offset)\": converting NULL to int64 is unsupported" {
 			// No rows were returned - this means the topic is empty
 			maxOffset = 0
 		} else {
