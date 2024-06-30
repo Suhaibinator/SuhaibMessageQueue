@@ -91,26 +91,25 @@ func (d *DBDriver) newTopic(db *sql.DB, topic string) (*Topic, error) {
 		messagesChannel:               messagesChannel,
 	}
 
-	go func() {
-		for {
-			message := <-messagesChannel
+	go func(result *Topic) {
+		for message := range messagesChannel { // This gracefully exits the loop if the channel is closed.
 			d.dbMux.Lock()
 			sqlResult, err := addMessage.Exec(message)
 			if err != nil {
-				log.Printf("Error adding message to topic %s: %e", topic, err)
-				d.dbMux.Unlock() // IMPORTANT, UNLOCK BEFORE CONTINUE
+				log.Printf("Error adding message to topic %s: %v", topic, err)
+				d.dbMux.Unlock()
 				continue
 			}
-			maxOffset, err = sqlResult.LastInsertId()
-			if err != nil && maxOffset > result.maxOffset {
+			maxOffset, err := sqlResult.LastInsertId()
+			if err == nil && maxOffset > result.maxOffset { // Corrected condition check order.
 				result.maxOffset = maxOffset
 			}
 			d.dbMux.Unlock()
 			if err != nil {
-				log.Printf("Error adding message to topic %s: %e", topic, err)
+				log.Printf("Error retrieving last insert ID for topic %s: %v", topic, err)
 			}
 		}
-	}()
+	}(result)
 
 	return result, nil
 }
