@@ -6,9 +6,12 @@ import (
 	"log"
 	"sync"
 	"time"
+
+	"github.com/Suhaibinator/SuhaibMessageQueue/errors"
 )
 
 type Topic struct {
+	maxOffset                     int64
 	name                          string
 	db                            *sql.DB
 	dbMux                         *sync.RWMutex
@@ -62,20 +65,20 @@ func (d *DBDriver) newTopic(db *sql.DB, topic string) (*Topic, error) {
 
 	messagesChannel := make(chan []byte)
 
-	go func() {
-		for {
-			message := <-messagesChannel
-			d.dbMux.Lock()
-			_, err := addMessage.Exec(message)
-			d.dbMux.Unlock()
-			if err != nil {
-				log.Printf("Error adding message to topic %s: %e", topic, err)
-			}
+	var maxOffset int64
+	err = getLatestOffset.QueryRow().Scan(&maxOffset)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// No rows were returned - this means the topic is empty
+			maxOffset = 0
+		} else {
+			return nil, fmt.Errorf("error retrieving from topic: %v", err)
 		}
-	}()
+	}
 
-	return &Topic{
+	result := &Topic{
 		name:                          topic,
+		maxOffset:                     maxOffset,
 		db:                            db,
 		dbMux:                         d.dbMux,
 		getLatestOffsetStmt:           getLatestOffset,
@@ -86,7 +89,30 @@ func (d *DBDriver) newTopic(db *sql.DB, topic string) (*Topic, error) {
 		deleteMessagesUntilOffsetStmt: deleteMessagesUntilOffset,
 		addMessageStmt:                addMessage,
 		messagesChannel:               messagesChannel,
-	}, nil
+	}
+
+	go func() {
+		for {
+			message := <-messagesChannel
+			d.dbMux.Lock()
+			sqlResult, err := addMessage.Exec(message)
+			if err != nil {
+				log.Printf("Error adding message to topic %s: %e", topic, err)
+				d.dbMux.Unlock() // IMPORTANT, UNLOCK BEFORE CONTINUE
+				continue
+			}
+			maxOffset, err = sqlResult.LastInsertId()
+			if err != nil && maxOffset > result.maxOffset {
+				result.maxOffset = maxOffset
+			}
+			d.dbMux.Unlock()
+			if err != nil {
+				log.Printf("Error adding message to topic %s: %e", topic, err)
+			}
+		}
+	}()
+
+	return result, nil
 }
 
 func (t *Topic) getLatestOffset() (int64, error) {
@@ -153,6 +179,10 @@ func (t *Topic) getEarliestMessage() ([]byte, int64, time.Time, error) {
 }
 
 func (t *Topic) getMessageAtOffset(offset int64) ([]byte, error) {
+	if offset > t.maxOffset {
+		return nil, fmt.Errorf(errors.ErrOffsetGreaterThanLatest)
+	}
+
 	var data []byte
 	t.dbMux.RLock()
 	defer t.dbMux.RUnlock()
