@@ -122,7 +122,7 @@ func (t *Topic) getLatestOffset() (int64, error) {
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// No rows were returned - this means the topic is empty
-			return 0, nil
+			return 0, errors.ErrTopicIsEmpty
 		}
 		return -1, fmt.Errorf("error retrieving from topic: %v", err)
 	}
@@ -137,7 +137,7 @@ func (t *Topic) getEarliestOffset() (int64, error) {
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// No rows were returned - this means the topic is empty
-			return 0, nil
+			return 0, errors.ErrTopicIsEmpty
 		}
 		return -1, fmt.Errorf("error retrieving from topic: %v", err)
 	}
@@ -153,7 +153,7 @@ func (t *Topic) getLatestMessage() ([]byte, int64, error) {
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// No rows were returned - this means the topic is empty
-			return nil, 0, nil
+			return nil, 0, errors.ErrTopicIsEmpty
 		}
 		return nil, -1, fmt.Errorf("error retrieving from topic: %v", err)
 	}
@@ -170,7 +170,7 @@ func (t *Topic) getEarliestMessage() ([]byte, int64, time.Time, error) {
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// No rows were returned - this means the topic is empty
-			return nil, 0, time, nil
+			return nil, 0, time, errors.ErrTopicIsEmpty
 		}
 		return nil, -1, time, fmt.Errorf("error retrieving from topic: %v", err)
 	}
@@ -179,7 +179,7 @@ func (t *Topic) getEarliestMessage() ([]byte, int64, time.Time, error) {
 
 func (t *Topic) getMessageAtOffset(offset int64) ([]byte, error) {
 	if offset > t.maxOffset {
-		return nil, fmt.Errorf(errors.ErrOffsetGreaterThanLatest)
+		return nil, errors.ErrOffsetGreaterThanLatest
 	}
 
 	var data []byte
@@ -189,7 +189,7 @@ func (t *Topic) getMessageAtOffset(offset int64) ([]byte, error) {
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// No rows were returned - this means the offset does not exist
-			return nil, nil
+			return nil, errors.ErrNotMessageAtOffset
 		}
 		return nil, fmt.Errorf("error retrieving from topic: %v", err)
 	}
@@ -201,7 +201,7 @@ func (t *Topic) deleteMessagesUntilOffset(offset int64) error {
 	defer t.dbMux.Unlock()
 	_, err := t.deleteMessagesUntilOffsetStmt.Exec(offset)
 	if err != nil {
-		return fmt.Errorf("error deleting from topic: %v", err)
+		return errors.ErrDeletingTopic
 	}
 	return nil
 }
