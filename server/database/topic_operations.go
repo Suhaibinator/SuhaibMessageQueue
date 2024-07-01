@@ -130,18 +130,18 @@ func (t *Topic) getLatestOffset() (int64, error) {
 }
 
 func (t *Topic) getEarliestOffset() (int64, error) {
-	var offset int64
+	var nullableOffset sql.NullInt64 // Use sql.NullInt64 to handle NULL values
 	t.dbMux.RLock()
 	defer t.dbMux.RUnlock()
-	err := t.getEarliestOffsetStmt.QueryRow().Scan(&offset)
+	err := t.getEarliestOffsetStmt.QueryRow().Scan(&nullableOffset)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			// No rows were returned - this means the topic is empty
-			return 0, errors.ErrTopicIsEmpty
-		}
 		return -1, fmt.Errorf("error retrieving from topic: %v", err)
 	}
-	return offset, nil
+	if !nullableOffset.Valid {
+		// This means the topic is empty or the offset is NULL
+		return 0, errors.ErrTopicIsEmpty
+	}
+	return nullableOffset.Int64, nil
 }
 
 func (t *Topic) getLatestMessage() ([]byte, int64, error) {
