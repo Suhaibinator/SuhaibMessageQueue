@@ -65,20 +65,26 @@ func (d *DBDriver) newTopic(db *sql.DB, topic string) (*Topic, error) {
 
 	messagesChannel := make(chan []byte)
 
-	var maxOffset int64
+	var maxOffset sql.NullInt64
 	err = getLatestOffset.QueryRow().Scan(&maxOffset)
 	if err != nil {
-		if err == sql.ErrNoRows || err.Error() == "sql: Scan error on column index 0, name \"MAX(offset)\": converting NULL to int64 is unsupported" {
+		if err == sql.ErrNoRows {
 			// No rows were returned - this means the topic is empty
-			maxOffset = 0
+			maxOffset.Int64 = 0
+			maxOffset.Valid = true // Explicitly set Valid to true when assigning a value
 		} else {
 			return nil, fmt.Errorf("error retrieving from topic: %v", err)
 		}
 	}
+	if !maxOffset.Valid {
+		maxOffset.Int64 = 0
+	}
+
+	// Use maxOffset.Int64 where an int64 is required, checking maxOffset.Valid if necessary
 
 	result := &Topic{
 		name:                          topic,
-		maxOffset:                     maxOffset,
+		maxOffset:                     maxOffset.Int64,
 		db:                            db,
 		dbMux:                         d.dbMux,
 		getLatestOffsetStmt:           getLatestOffset,
