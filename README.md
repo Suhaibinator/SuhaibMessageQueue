@@ -1,6 +1,6 @@
 # Suhaib Message Queue (SMQ)
 
-Simple Message Queue (SMQ) is an ultra-lightweight, efficient messaging queue system developed in Go. It is designed for high adaptability and resilience, perfect for integrating with Go applications, deploying in Docker containers, or operating as a standalone service.
+Suhaib Message Queue (SMQ) is an ultra-lightweight, efficient messaging queue system developed in Go. It is designed for high adaptability and resilience, perfect for integrating with Go applications, deploying in Docker containers, or operating as a standalone service.
 
 ## Features
 
