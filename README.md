@@ -49,7 +49,13 @@ SMQ will start running on port 8097 by default. However, you can customize the b
 ### Using Docker
 
 ```bash
-docker run suhaibinator/smq:latestamd64
+docker run suhaibinator/smq:latest-amd64
+```
+
+or
+
+```bash
+docker run suhaibinator/smq:latest-arm64
 ```
 
 ### Command-Line Flags
