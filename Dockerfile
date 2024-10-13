@@ -11,8 +11,12 @@ WORKDIR /src
 # Copy the Go source code to the builder container
 COPY . .
 
+# Set environment variables for cross-compilation
+ENV CGO_ENABLED=1
+ENV GOOS=linux
+
 # Build the Go application
-RUN CGO_ENABLED=1 GOOS=linux go build -o SuhaibMessageQueue
+RUN go build -o SuhaibMessageQueue
 
 # Stage 2: Create the final image
 FROM alpine:latest
