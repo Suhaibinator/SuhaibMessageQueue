@@ -44,12 +44,18 @@ To run SMQ, execute the built binary:
 ./smq
 ```
 
-SMQ will start running on port 80097 by default. However, you can customize the behavior of SMQ using command-line flags and environment variables. The priority for these settings is as follows: command-line flags > environment variables > default values.
+SMQ will start running on port 8097 by default. However, you can customize the behavior of SMQ using command-line flags and environment variables. The priority for these settings is as follows: command-line flags > environment variables > default values.
+
+### Using Docker
+
+```bash
+docker run suhaibinator/smq:latest
+```
 
 ### Command-Line Flags
 
-- `--dbpath`: Specifies the path to the SQLite database file. By default, it is set to `/db/dbtest.db`.
-- `--port`: Specifies the port to listen on. By default, it is set to `80097`.
+- `--dbpath`: Specifies the path to the SQLite database file. By default, it is set to `./dbtest.db`.
+- `--port`: Specifies the port to listen on. By default, it is set to `8097`.
 
 If command-line flags are provided, they take the highest priority and override any other settings.
 
@@ -84,7 +90,7 @@ import (
 
 func main() {
     // Create a new client
-    smqClient, err := client.NewClient("localhost", "80097")
+    smqClient, err := client.NewClient("localhost", "8097")
     if err != nil {
         log.Fatalf("Failed to create client: %v", err)
     }

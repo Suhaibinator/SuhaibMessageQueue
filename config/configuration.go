@@ -7,6 +7,6 @@ const (
 
 var (
 	// DBPath is the path to the SQLite database file
-	DBPath = "/db/dbtest.db"
-	Port   = "80097"
+	DBPath = "./dbtest.db"
+	Port   = "8097"
 )

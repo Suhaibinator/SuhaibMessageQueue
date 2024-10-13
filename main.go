@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/Suhaibinator/SuhaibMessageQueue/config"
+	"github.com/Suhaibinator/SuhaibMessageQueue/server"
 )
 
 func init() {
@@ -35,4 +36,7 @@ func init() {
 }
 
 func main() {
+	// Start the server
+	server := server.NewServer(config.Port, config.DBPath)
+	server.Start()
 }
