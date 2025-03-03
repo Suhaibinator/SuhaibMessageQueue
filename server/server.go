@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"io"
 	"log"
 	"net"
 	"time"
@@ -14,7 +15,7 @@ import (
 
 type Server struct {
 	pb.UnimplementedSuhaibMessageQueueServer
-	Driver     *database.DBDriver
+	Driver     database.DBDriverInterface
 	grpcServer *grpc.Server
 
 	port string
@@ -28,11 +29,15 @@ func (s *Server) Produce(ctx context.Context, pr *pb.ProduceRequest) (*pb.Produc
 	return &pb.ProduceResponse{}, nil
 }
 
-func (s *Server) StreamProducer(sp pb.SuhaibMessageQueue_StreamProduceServer) error {
+func (s *Server) StreamProduce(sp pb.SuhaibMessageQueue_StreamProduceServer) error {
 	for {
 		// Receive a message from the client
 		message, err := sp.Recv()
 		if err != nil {
+			if err == io.EOF {
+				// End of stream, send response
+				return sp.SendAndClose(&pb.ProduceResponse{})
+			}
 			return err
 		}
 
@@ -185,4 +190,9 @@ func (s *Server) DeleteUntilOffset(ctx context.Context, dr *pb.DeleteUntilOffset
 
 func (s *Server) Debug() {
 	s.Driver.Debug()
+}
+
+// Connect is a placeholder implementation for the Connect method required by the interface
+func (s *Server) Connect(ctx context.Context, req *pb.ConnectRequest) (*pb.ConnectResponse, error) {
+	return &pb.ConnectResponse{}, nil
 }
