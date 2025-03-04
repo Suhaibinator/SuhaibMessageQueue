@@ -23,6 +23,7 @@ type Topic struct {
 	deleteMessagesUntilOffsetStmt *sql.Stmt
 	addMessageStmt                *sql.Stmt
 	messagesChannel               chan []byte
+	resultChannel                 chan error
 }
 
 func (d *DBDriver) newTopic(db *sql.DB, topic string) (*Topic, error) {
@@ -64,6 +65,7 @@ func (d *DBDriver) newTopic(db *sql.DB, topic string) (*Topic, error) {
 	}
 
 	messagesChannel := make(chan []byte)
+	resultChannel := make(chan error, 1) // Buffered channel to avoid blocking
 
 	var maxOffset sql.NullInt64
 	err = getLatestOffset.QueryRow().Scan(&maxOffset)
@@ -95,6 +97,7 @@ func (d *DBDriver) newTopic(db *sql.DB, topic string) (*Topic, error) {
 		deleteMessagesUntilOffsetStmt: deleteMessagesUntilOffset,
 		addMessageStmt:                addMessage,
 		messagesChannel:               messagesChannel,
+		resultChannel:                 resultChannel,
 	}
 
 	go func(result *Topic) {
@@ -103,6 +106,7 @@ func (d *DBDriver) newTopic(db *sql.DB, topic string) (*Topic, error) {
 			sqlResult, err := addMessage.Exec(message)
 			if err != nil {
 				log.Printf("Error adding message to topic %s: %v", topic, err)
+				result.resultChannel <- err
 				d.dbMux.Unlock()
 				continue
 			}
@@ -113,6 +117,9 @@ func (d *DBDriver) newTopic(db *sql.DB, topic string) (*Topic, error) {
 			d.dbMux.Unlock()
 			if err != nil {
 				log.Printf("Error retrieving last insert ID for topic %s: %v", topic, err)
+				result.resultChannel <- err
+			} else {
+				result.resultChannel <- nil // Signal success
 			}
 		}
 	}(result)
@@ -121,18 +128,18 @@ func (d *DBDriver) newTopic(db *sql.DB, topic string) (*Topic, error) {
 }
 
 func (t *Topic) getLatestOffset() (int64, error) {
-	var offset int64
+	var nullableOffset sql.NullInt64 // Use sql.NullInt64 to handle NULL values
 	t.dbMux.RLock()
 	defer t.dbMux.RUnlock()
-	err := t.getLatestOffsetStmt.QueryRow().Scan(&offset)
+	err := t.getLatestOffsetStmt.QueryRow().Scan(&nullableOffset)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			// No rows were returned - this means the topic is empty
-			return 0, errors.ErrTopicIsEmpty
-		}
 		return -1, fmt.Errorf("error retrieving from topic: %v", err)
 	}
-	return offset, nil
+	if !nullableOffset.Valid {
+		// This means the topic is empty or the offset is NULL
+		return 0, errors.ErrTopicIsEmpty
+	}
+	return nullableOffset.Int64, nil
 }
 
 func (t *Topic) getEarliestOffset() (int64, error) {
@@ -233,5 +240,7 @@ func (t *Topic) closeTopic() error {
 
 func (t *Topic) addMessage(data []byte) error {
 	t.messagesChannel <- data
-	return nil
+	// Wait for the result
+	err := <-t.resultChannel
+	return err
 }
