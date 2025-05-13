@@ -1,5 +1,7 @@
 package config
 
+import "log"
+
 // TLSConfig holds the paths to the TLS certificate files for mTLS.
 type TLSConfig struct {
 	CertFile string // Path to client's certificate file (PEM format)
