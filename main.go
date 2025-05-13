@@ -46,6 +46,7 @@ func init() {
 	}
 
 	// Check program arguments
+	// Note: Command-line flag values will override environment variable settings for the corresponding configuration options.
 	flag.StringVar(&config.DBPath, "dbpath", config.DBPath, "path to the SQLite database file")
 	flag.StringVar(&config.Port, "port", config.Port, "port to listen on")
 	flag.StringVar(&config.ClientCert, "client-cert", config.ClientCert, "path to client certificate file for mTLS")

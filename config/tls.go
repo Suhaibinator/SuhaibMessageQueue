@@ -17,6 +17,7 @@ func GetTLSConfig() *TLSConfig {
 
 	// Only proceed if all required paths are specified
 	if ClientCert == "" || ClientKey == "" || CACert == "" {
+		log.Printf("Warning: Missing required certificate paths. ClientCert: %v, ClientKey: %v, CACert: %v", ClientCert != "", ClientKey != "", CACert != "")
 		return nil
 	}
 
