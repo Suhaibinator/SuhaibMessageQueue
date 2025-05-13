@@ -182,7 +182,7 @@ func setupTest(t *testing.T) (*Server, pb.SuhaibMessageQueueClient, func()) {
 
 	// Create a server with the mock driver
 	s := &Server{
-		Driver:     mockDriver,
+		driver:     mockDriver,
 		grpcServer: grpc.NewServer(),
 		port:       "8097",
 	}
@@ -243,7 +243,7 @@ func TestCreateTopic(t *testing.T) {
 	}
 
 	// Verify topic was created
-	mockDriver := s.Driver.(*MockDBDriver)
+	mockDriver := s.driver.(*MockDBDriver)
 	if !mockDriver.topics["test_topic"] {
 		t.Fatal("Expected topic to be created")
 	}
@@ -276,7 +276,7 @@ func TestProduce(t *testing.T) {
 	}
 
 	// Verify message was added
-	mockDriver := s.Driver.(*MockDBDriver)
+	mockDriver := s.driver.(*MockDBDriver)
 	if mockDriver.latestOffsets["test_topic"] != 1 {
 		t.Errorf("Expected latest offset to be 1, got %d", mockDriver.latestOffsets["test_topic"])
 	}
@@ -306,7 +306,7 @@ func TestConsume(t *testing.T) {
 
 	// Add a message to the topic
 	message := []byte("test message")
-	mockDriver := s.Driver.(*MockDBDriver)
+	mockDriver := s.driver.(*MockDBDriver)
 	mockDriver.AddMessageToTopic("test_topic", message)
 
 	// Test consuming the message
@@ -354,7 +354,7 @@ func TestGetEarliestOffset(t *testing.T) {
 
 	// Add a message to the topic
 	message := []byte("test message")
-	mockDriver := s.Driver.(*MockDBDriver)
+	mockDriver := s.driver.(*MockDBDriver)
 	mockDriver.AddMessageToTopic("test_topic", message)
 
 	// Test getting the earliest offset
@@ -399,7 +399,7 @@ func TestGetLatestOffset(t *testing.T) {
 
 	// Add messages to the topic
 	messages := []string{"message 1", "message 2", "message 3"}
-	mockDriver := s.Driver.(*MockDBDriver)
+	mockDriver := s.driver.(*MockDBDriver)
 	for _, msg := range messages {
 		mockDriver.AddMessageToTopic("test_topic", []byte(msg))
 	}
@@ -446,7 +446,7 @@ func TestDeleteUntilOffset(t *testing.T) {
 
 	// Add messages to the topic
 	messages := []string{"message 1", "message 2", "message 3", "message 4", "message 5"}
-	mockDriver := s.Driver.(*MockDBDriver)
+	mockDriver := s.driver.(*MockDBDriver)
 	for _, msg := range messages {
 		mockDriver.AddMessageToTopic("test_topic", []byte(msg))
 	}
@@ -491,7 +491,7 @@ func TestNewServer(t *testing.T) {
 	}
 
 	// Verify driver was created
-	if s.Driver == nil {
+	if s.driver == nil {
 		t.Fatal("Expected driver to be non-nil")
 	}
 
@@ -521,7 +521,7 @@ func TestStreamConsume(t *testing.T) {
 
 	// Add messages to the topic
 	messages := []string{"message 1", "message 2", "message 3"}
-	mockDriver := s.Driver.(*MockDBDriver)
+	mockDriver := s.driver.(*MockDBDriver)
 	for _, msg := range messages {
 		mockDriver.AddMessageToTopic("test_topic", []byte(msg))
 	}
@@ -594,7 +594,7 @@ func TestStreamProducer(t *testing.T) {
 	}
 
 	// Verify messages were added
-	mockDriver := s.Driver.(*MockDBDriver)
+	mockDriver := s.driver.(*MockDBDriver)
 	if mockDriver.latestOffsets["test_topic"] != int64(len(messages)) {
 		t.Errorf("Expected latest offset to be %d, got %d", len(messages), mockDriver.latestOffsets["test_topic"])
 	}
