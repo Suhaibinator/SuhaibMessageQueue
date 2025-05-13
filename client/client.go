@@ -47,10 +47,16 @@ func NewClient(address, port string, tlsCfg *config.TLSConfig) (*Client, error) 
 			return nil, fmt.Errorf("client: failed to append CA certificate to pool")
 		}
 
+		// Extract the hostname from the address for ServerName
+		host, _, err := net.SplitHostPort(address)
+		if err != nil {
+			return nil, fmt.Errorf("client: invalid address format: %w", err)
+		}
+
 		tlsCredentials := &tls.Config{
 			Certificates: []tls.Certificate{clientCert},
 			RootCAs:      caCertPool,
-			// ServerName: "your.server.hostname", // Optional: Override server name for verification
+			ServerName:   host, // Set the ServerName for proper certificate verification
 		}
 		creds = credentials.NewTLS(tlsCredentials)
 	} else {
