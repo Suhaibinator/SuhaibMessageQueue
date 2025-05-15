@@ -31,7 +31,7 @@ SMQ is particularly advantageous in environments where simplicity, minimal overh
 To install SMQ, clone the repository and build the application using Go:
 
 ```bash
-git clone https://github.com/yourusername/smq.git
+git clone https://github.com/Suhaibinator/SuhaibMessageQueue.git
 cd smq
 go build
 ```
