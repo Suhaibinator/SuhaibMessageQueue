@@ -1,0 +1,45 @@
+name: Publish Python Package to PyPI
+
+on:
+  push:
+    tags:
+      - 'v*' # Trigger on tags like v0.1.0, v1.0.0, etc.
+
+jobs:
+  build-and-publish:
+    name: Build and publish Python package to PyPI
+    runs-on: ubuntu-latest
+    # NOTE: You should create a "pypi-publish" environment in GitHub repo settings 
+    # and configure it to match what you set up in PyPI trusted publishing
+    # Uncomment the following line once your environment is set up in GitHub:
+    # environment: pypi-publish
+    permissions:
+      id-token: write # Required for trusted publishing (OIDC)
+      contents: read  # To checkout the repository
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetches all history for setuptools_scm
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build twine
+
+      - name: Build package
+        working-directory: ./pysmq
+        run: python -m build
+
+      - name: Publish package to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: ./pysmq/dist/
+          skip-existing: true # Optional: Don't fail if version already exists
+          print-hash: true # Print hashes of uploaded files for verification
