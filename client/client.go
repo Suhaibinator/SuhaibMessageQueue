@@ -214,3 +214,19 @@ func (c *Client) DeleteUntilOffset(topic string, offset int64) error {
 	_, err := c.client.DeleteUntilOffset(ctx, &pb.DeleteUntilOffsetRequest{Topic: topic, Offset: offset})
 	return err
 }
+
+// BulkRetrieve retrieves a batch of messages from the server.
+func (c *Client) BulkRetrieve(topic string, startOffset int64, limit int32) (*pb.BulkRetrieveResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+	defer cancel()
+
+	response, err := c.client.BulkRetrieve(ctx, &pb.BulkRetrieveRequest{
+		Topic:       topic,
+		StartOffset: startOffset,
+		Limit:       limit,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return response, nil
+}

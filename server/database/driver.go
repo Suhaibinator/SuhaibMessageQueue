@@ -230,6 +230,17 @@ func (d *DBDriver) DeleteMessagesUntilOffset(topic string, offset int64) error {
 	return topicObj.deleteMessagesUntilOffset(offset)
 }
 
+func (d *DBDriver) GetMessagesAfterOffsetWithLimit(topic string, startOffset int64, limit int) ([]Message, int64, error) {
+	d.topicsMux.RLock()
+	topicObj, ok := d.topics[topic]
+	d.topicsMux.RUnlock()
+	if !ok {
+		return nil, -1, fmt.Errorf("topic %s does not exist", topic)
+	}
+
+	return topicObj.getMessagesAfterOffsetWithLimit(startOffset, limit)
+}
+
 func (d *DBDriver) Close() {
 	d.db.Close()
 }

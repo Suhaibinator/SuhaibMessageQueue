@@ -28,6 +28,7 @@ const (
 	SuhaibMessageQueue_StreamProduce_FullMethodName     = "/smq.SuhaibMessageQueue/StreamProduce"
 	SuhaibMessageQueue_StreamConsume_FullMethodName     = "/smq.SuhaibMessageQueue/StreamConsume"
 	SuhaibMessageQueue_DeleteUntilOffset_FullMethodName = "/smq.SuhaibMessageQueue/DeleteUntilOffset"
+	SuhaibMessageQueue_BulkRetrieve_FullMethodName      = "/smq.SuhaibMessageQueue/BulkRetrieve"
 )
 
 // SuhaibMessageQueueClient is the client API for SuhaibMessageQueue service.
@@ -45,6 +46,7 @@ type SuhaibMessageQueueClient interface {
 	StreamProduce(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[ProduceRequest, ProduceResponse], error)
 	StreamConsume(ctx context.Context, in *ConsumeRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ConsumeResponse], error)
 	DeleteUntilOffset(ctx context.Context, in *DeleteUntilOffsetRequest, opts ...grpc.CallOption) (*DeleteUntilOffsetResponse, error)
+	BulkRetrieve(ctx context.Context, in *BulkRetrieveRequest, opts ...grpc.CallOption) (*BulkRetrieveResponse, error)
 }
 
 type suhaibMessageQueueClient struct {
@@ -157,6 +159,16 @@ func (c *suhaibMessageQueueClient) DeleteUntilOffset(ctx context.Context, in *De
 	return out, nil
 }
 
+func (c *suhaibMessageQueueClient) BulkRetrieve(ctx context.Context, in *BulkRetrieveRequest, opts ...grpc.CallOption) (*BulkRetrieveResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BulkRetrieveResponse)
+	err := c.cc.Invoke(ctx, SuhaibMessageQueue_BulkRetrieve_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // SuhaibMessageQueueServer is the server API for SuhaibMessageQueue service.
 // All implementations must embed UnimplementedSuhaibMessageQueueServer
 // for forward compatibility.
@@ -172,6 +184,7 @@ type SuhaibMessageQueueServer interface {
 	StreamProduce(grpc.ClientStreamingServer[ProduceRequest, ProduceResponse]) error
 	StreamConsume(*ConsumeRequest, grpc.ServerStreamingServer[ConsumeResponse]) error
 	DeleteUntilOffset(context.Context, *DeleteUntilOffsetRequest) (*DeleteUntilOffsetResponse, error)
+	BulkRetrieve(context.Context, *BulkRetrieveRequest) (*BulkRetrieveResponse, error)
 	mustEmbedUnimplementedSuhaibMessageQueueServer()
 }
 
@@ -208,6 +221,9 @@ func (UnimplementedSuhaibMessageQueueServer) StreamConsume(*ConsumeRequest, grpc
 }
 func (UnimplementedSuhaibMessageQueueServer) DeleteUntilOffset(context.Context, *DeleteUntilOffsetRequest) (*DeleteUntilOffsetResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteUntilOffset not implemented")
+}
+func (UnimplementedSuhaibMessageQueueServer) BulkRetrieve(context.Context, *BulkRetrieveRequest) (*BulkRetrieveResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BulkRetrieve not implemented")
 }
 func (UnimplementedSuhaibMessageQueueServer) mustEmbedUnimplementedSuhaibMessageQueueServer() {}
 func (UnimplementedSuhaibMessageQueueServer) testEmbeddedByValue()                            {}
@@ -374,6 +390,24 @@ func _SuhaibMessageQueue_DeleteUntilOffset_Handler(srv interface{}, ctx context.
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SuhaibMessageQueue_BulkRetrieve_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BulkRetrieveRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SuhaibMessageQueueServer).BulkRetrieve(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SuhaibMessageQueue_BulkRetrieve_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SuhaibMessageQueueServer).BulkRetrieve(ctx, req.(*BulkRetrieveRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // SuhaibMessageQueue_ServiceDesc is the grpc.ServiceDesc for SuhaibMessageQueue service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -408,6 +442,10 @@ var SuhaibMessageQueue_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteUntilOffset",
 			Handler:    _SuhaibMessageQueue_DeleteUntilOffset_Handler,
+		},
+		{
+			MethodName: "BulkRetrieve",
+			Handler:    _SuhaibMessageQueue_BulkRetrieve_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
