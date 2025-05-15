@@ -40,7 +40,7 @@ func main() {
 	}
 
 	// Get TLS config from global configuration
-	tlsConfig := config.GetTLSConfig()
+	tlsConfig := config.GetClientTLSConfig()
 
 	// Create a client with optional mTLS
 	// If tlsConfig is nil, it will use an insecure connection

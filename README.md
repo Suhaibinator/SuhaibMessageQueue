@@ -60,15 +60,31 @@ docker run suhaibinator/smq:latest-arm64
 
 ### Command-Line Flags
 
-- `--dbpath`: Specifies the path to the SQLite database file. By default, it is set to `./dbtest.db`.
-- `--port`: Specifies the port to listen on. By default, it is set to `8097`.
+- `--dbpath`: Specifies the path to the SQLite database file. Default: `./dbtest.db`.
+- `--port`: Specifies the port to listen on. Default: `8097`.
+- `--enable-mtls`: Enables client-side mTLS authentication. (boolean, e.g., `--enable-mtls=true`)
+- `--client-cert`: Path to the client's certificate file for mTLS.
+- `--client-key`: Path to the client's private key file for mTLS.
+- `--ca-cert`: Path to the CA certificate file for the client to verify the server.
+- `--server-enable-mtls`: Enables server-side mTLS authentication. (boolean, e.g., `--server-enable-mtls=true`)
+- `--server-cert`: Path to the server's certificate file for mTLS.
+- `--server-key`: Path to the server's private key file for mTLS.
+- `--server-ca-cert`: Path to the CA certificate file for the server to verify clients.
 
 If command-line flags are provided, they take the highest priority and override any other settings.
 
 ### Environment Variables
 
-- `DB_PATH`: Overrides the default path to the SQLite database file, unless the `--dbpath` flag is used.
-- `PORT`: Overrides the default port to listen on, unless the `--port` flag is used.
+- `DB_PATH`: Overrides the default path to the SQLite database file (unless `--dbpath` is used).
+- `PORT`: Overrides the default port to listen on (unless `--port` is used).
+- `ENABLE_MTLS`: Enables client-side mTLS (`true` or `false`).
+- `CLIENT_CERT`: Path to client certificate file.
+- `CLIENT_KEY`: Path to client key file.
+- `CA_CERT`: Path to CA certificate for client to verify server.
+- `SERVER_ENABLE_MTLS`: Enables server-side mTLS (`true` or `false`).
+- `SERVER_CERT_FILE`: Path to server certificate file.
+- `SERVER_KEY_FILE`: Path to server key file.
+- `SERVER_CA_CERT_FILE`: Path to CA certificate for server to verify clients.
 
 Environment variables take priority over default values but are overridden by command-line flags if they are set.
 
@@ -82,6 +98,62 @@ export PORT=9000
 
 
 ## Usage
+
+### mTLS Configuration
+
+SMQ supports mutual TLS (mTLS) for securing communication between the client and server. You can configure mTLS for the client, the server, or both.
+
+**Client-Side mTLS:**
+When client-side mTLS is enabled, the client will present its certificate to the server, and the server will verify it. The client will also verify the server's certificate using the provided CA certificate.
+- Enable with `ENABLE_MTLS=true` (env) or `--enable-mtls` (flag).
+- Provide `CLIENT_CERT`, `CLIENT_KEY`, and `CA_CERT` (env) or `--client-cert`, `--client-key`, `--ca-cert` (flags).
+
+**Server-Side mTLS:**
+When server-side mTLS is enabled, the server will require clients to present a certificate and will verify it against the server's CA certificate. The server will also present its own certificate to clients.
+- Enable with `SERVER_ENABLE_MTLS=true` (env) or `--server-enable-mtls` (flag).
+- Provide `SERVER_CERT_FILE`, `SERVER_KEY_FILE`, and `SERVER_CA_CERT_FILE` (env) or `--server-cert`, `--server-key`, `--server-ca-cert` (flags).
+
+**Generating Certificates (Example using OpenSSL):**
+
+You'll typically need a Certificate Authority (CA), a server certificate/key signed by the CA, and a client certificate/key signed by the CA.
+
+1.  **Create CA:**
+    ```bash
+    openssl genrsa -out ca.key 4096
+    openssl req -new -x509 -days 365 -key ca.key -out ca.crt -subj "/CN=My SMQ CA"
+    ```
+
+2.  **Create Server Certificate:**
+    ```bash
+    openssl genrsa -out server.key 4096
+    openssl req -new -key server.key -out server.csr -subj "/CN=localhost" # Use your server's hostname
+    openssl x509 -req -days 365 -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt
+    ```
+
+3.  **Create Client Certificate:**
+    ```bash
+    openssl genrsa -out client.key 4096
+    openssl req -new -key client.key -out client.csr -subj "/CN=smqclient"
+    openssl x509 -req -days 365 -in client.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out client.crt
+    ```
+
+Place these files in appropriate locations and configure SMQ using the flags or environment variables described above. For example, to run the server with mTLS:
+```bash
+export SERVER_ENABLE_MTLS=true
+export SERVER_CERT_FILE=./server.crt
+export SERVER_KEY_FILE=./server.key
+export SERVER_CA_CERT_FILE=./ca.crt # This CA will be used to verify client certs
+./smq
+```
+And for the client (in your client application's configuration):
+```go
+// In your client application
+config.EnableMTLS = true
+config.ClientCert = "./client.crt"
+config.ClientKey = "./client.key"
+config.CACert = "./ca.crt" // This CA will be used to verify the server cert
+// ... then initialize your client
+```
 
 Here's an example of how to use the SMQ client package to create a topic, produce a message, and consume messages:
 

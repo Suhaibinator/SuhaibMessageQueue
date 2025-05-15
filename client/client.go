@@ -27,7 +27,7 @@ type Client struct {
 // NewClient creates a new client
 // It accepts an optional tlsCfg to enable mTLS.
 // If tlsCfg is nil, it defaults to an insecure connection.
-func NewClient(address, port string, tlsCfg *config.TLSConfig) (*Client, error) {
+func NewClient(address, port string, tlsCfg *config.ClientTLSConfig) (*Client, error) {
 	var creds credentials.TransportCredentials
 	var err error
 

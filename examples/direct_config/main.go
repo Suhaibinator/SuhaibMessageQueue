@@ -25,7 +25,7 @@ func main() {
 	caCertPath := "/path/to/ca.crt"
 
 	// Create a TLSConfig if mTLS is enabled
-	var tlsConfig *config.TLSConfig
+	var tlsConfig *config.ClientTLSConfig
 	if enableMTLS {
 		// Check if certificate files exist
 		if _, err := os.Stat(clientCertPath); os.IsNotExist(err) {
@@ -38,7 +38,7 @@ func main() {
 			log.Fatalf("CA certificate file not found: %s", caCertPath)
 		}
 
-		tlsConfig = &config.TLSConfig{
+		tlsConfig = &config.ClientTLSConfig{
 			CertFile: clientCertPath,
 			KeyFile:  clientKeyPath,
 			CAFile:   caCertPath,
