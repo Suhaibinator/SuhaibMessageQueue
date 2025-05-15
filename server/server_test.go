@@ -539,7 +539,7 @@ func TestDeleteUntilOffset(t *testing.T) {
 
 func TestNewServer(t *testing.T) {
 	// Test creating a new server
-	s := NewServer("8097", ":memory:")
+	s := NewServer("8097", ":memory:", nil)
 
 	// Verify server was created successfully
 	if s == nil {

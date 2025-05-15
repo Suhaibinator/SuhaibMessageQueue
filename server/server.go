@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
 	"io"
 	"log"
 	"net"
@@ -13,6 +14,14 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
+
+// ServerOptions allows for programmatic configuration of the server.
+type ServerOptions struct {
+	EnableMTLS     bool
+	TLSConfig      *tls.Config
+	MaxRecvMsgSize int
+	MaxSendMsgSize int
+}
 
 type Server struct {
 	pb.UnimplementedSuhaibMessageQueueServer
@@ -155,27 +164,59 @@ func (s *Server) Close() {
 	s.driver.Close()
 }
 
-func NewServer(port, dbPath string) *Server {
+func NewServer(port, dbPath string, opts *ServerOptions) *Server {
 	driver, err := database.NewDBDriver(dbPath)
 	if err != nil {
 		log.Fatalf("failed to create database driver: %v", err)
 	}
 
 	var serverOpts []grpc.ServerOption
-	serverOpts = append(serverOpts, grpc.MaxRecvMsgSize(1024*1024*1024))
-	serverOpts = append(serverOpts, grpc.MaxSendMsgSize(1024*1024*1024))
 
-	if config.ServerEnableMTLS {
-		tlsConfig := config.LoadServerTLSConfig()
-		if tlsConfig != nil {
-			creds := credentials.NewTLS(tlsConfig)
-			serverOpts = append(serverOpts, grpc.Creds(creds))
-			log.Println("mTLS is enabled for the server.")
+	// Configure MaxRecvMsgSize and MaxSendMsgSize
+	maxRecvMsgSize := 1024 * 1024 * 1024 // Default 1GB
+	maxSendMsgSize := 1024 * 1024 * 1024 // Default 1GB
+
+	if opts != nil {
+		if opts.MaxRecvMsgSize > 0 {
+			maxRecvMsgSize = opts.MaxRecvMsgSize
+			log.Printf("MaxRecvMsgSize set to %d from options.", maxRecvMsgSize)
+		}
+		if opts.MaxSendMsgSize > 0 {
+			maxSendMsgSize = opts.MaxSendMsgSize
+			log.Printf("MaxSendMsgSize set to %d from options.", maxSendMsgSize)
+		}
+	}
+	serverOpts = append(serverOpts, grpc.MaxRecvMsgSize(maxRecvMsgSize))
+	serverOpts = append(serverOpts, grpc.MaxSendMsgSize(maxSendMsgSize))
+
+	// Configure mTLS
+	if opts != nil {
+		log.Println("Using mTLS configuration from ServerOptions.")
+		if opts.EnableMTLS {
+			if opts.TLSConfig != nil {
+				creds := credentials.NewTLS(opts.TLSConfig)
+				serverOpts = append(serverOpts, grpc.Creds(creds))
+				log.Println("mTLS is enabled for the server via options.")
+			} else {
+				log.Println("Warning: Server mTLS is enabled in options, but TLSConfig is nil. Server will start without mTLS.")
+			}
 		} else {
-			log.Println("Warning: Server mTLS is enabled in config, but failed to load TLS configuration. Server will start without mTLS.")
+			log.Println("mTLS is not enabled for the server via options.")
 		}
 	} else {
-		log.Println("mTLS is not enabled for the server.")
+		log.Println("Using mTLS configuration from global config.")
+		if config.ServerEnableMTLS {
+			tlsConfig := config.LoadServerTLSConfig()
+			if tlsConfig != nil {
+				creds := credentials.NewTLS(tlsConfig)
+				serverOpts = append(serverOpts, grpc.Creds(creds))
+				log.Println("mTLS is enabled for the server via global config.")
+			} else {
+				log.Println("Warning: Server mTLS is enabled in global config, but failed to load TLS configuration. Server will start without mTLS.")
+			}
+		} else {
+			log.Println("mTLS is not enabled for the server via global config.")
+		}
 	}
 
 	grpcServer := grpc.NewServer(serverOpts...)

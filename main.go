@@ -85,6 +85,7 @@ func init() {
 
 func main() {
 	// Start the server
-	server := server.NewServer(config.Port, config.DBPath)
+	// Pass nil for ServerOptions to use default/global config behavior
+	server := server.NewServer(config.Port, config.DBPath, nil)
 	server.Start()
 }
