@@ -9,7 +9,7 @@ jobs:
   build-and-publish:
     name: Build and publish Python package to PyPI
     runs-on: ubuntu-latest
-    # NOTE: You should create a "pypi-publish" environment in GitHub repo settings 
+    # NOTE: You should create an environment in GitHub repo settings 
     # and configure it to match what you set up in PyPI trusted publishing
     # Uncomment the following line once your environment is set up in GitHub:
     environment: pypi
@@ -40,7 +40,7 @@ jobs:
       - name: Build package
         working-directory: ./pysmq
         env:
-          SETUPTOOLS_SCM_PRETEND_VERSION: ${{ steps.get_version.outputs.VERSION }}
+          SETUPTOOLS_SCM_PRETEND_VERSION_FOR_PYSMQ: ${{ steps.get_version.outputs.VERSION }}
         run: python -m build
 
       - name: Publish package to PyPI
