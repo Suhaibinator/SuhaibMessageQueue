@@ -8,7 +8,7 @@ Suhaib Message Queue (SMQ) is an ultra-lightweight, efficient messaging queue sy
 - **Flexible Deployment Options**: Run as a Docker container, integrate within Go applications, or operate as a standalone executable.
 - **Reliable Persistence**: Uses SQLite to store messages on disk with a write-ahead log and rollback journal, ensuring data durability across restarts and failures.
 - **gRPC Integration**: Utilizes gRPC for efficient, scalable communication between distributed services.
-- **Client Package**: Includes a client package to facilitate easy integration and communication.
+- **Client Packages**: Includes both a Go client package and a Python client package (pysmq on PyPI) to facilitate easy integration and communication across different languages.
 
 ## Why Choose SMQ Over Apache Kafka or RabbitMQ?
 SMQ is particularly advantageous in environments where simplicity, minimal overhead, and integration ease are paramount over the comprehensive feature sets of larger systems like Apache Kafka or RabbitMQ. It is especially well-suited for:
@@ -194,3 +194,107 @@ func main() {
     log.Printf("Received message at offset %d: %s", offset, string(msg))
 }
 ```
+
+## Python Client Usage
+
+SMQ also provides a Python client package (`pysmq`) available on PyPI, which allows Python applications to interact with SMQ servers.
+
+### Installing the Python Client
+
+Install the Python client using pip:
+
+```bash
+pip install pysmq
+```
+
+### Basic Usage Examples
+
+#### Publishing Messages
+
+Here's an example of how to publish messages to an SMQ server using the Python client:
+
+```python
+import json
+import time
+from pysmq.client import Client
+
+# Create a client
+with Client(host="localhost", port=8097) as client:
+    # Connect to the server
+    client.connect()
+    
+    # Create a topic
+    topic = "example-topic"
+    client.create_topic(topic)
+    
+    # Publish a message
+    message = {
+        "id": 1,
+        "timestamp": time.time(),
+        "content": "Hello from Python!",
+    }
+    message_bytes = json.dumps(message).encode('utf-8')
+    
+    # Produce the message
+    offset = client.produce(topic, message_bytes)
+    print(f"Message published at offset {offset}")
+```
+
+#### Consuming Messages
+
+Here's an example of how to consume messages:
+
+```python
+import json
+from pysmq.client import Client
+
+# Create a client
+with Client(host="localhost", port=8097) as client:
+    # Connect to the server
+    client.connect()
+    
+    topic = "example-topic"
+    
+    # Consume the latest message
+    message_bytes, offset = client.consume_latest(topic)
+    
+    # Process the message
+    message = json.loads(message_bytes.decode('utf-8'))
+    print(f"Received message at offset {offset}:")
+    print(f"Content: {message.get('content')}")
+    
+    # Stream consumption example
+    print("Starting stream consumption...")
+    for message_bytes, offset in client.stream_consume(topic, start_offset=0):
+        message = json.loads(message_bytes.decode('utf-8'))
+        print(f"Received message at offset {offset}: {message.get('content')}")
+        # Break condition (example: stop after processing 10 messages)
+        if offset >= 10:
+            break
+```
+
+#### Secure Connection with mTLS
+
+The Python client also supports secure connections using mTLS:
+
+```python
+from pysmq.client import Client
+from pysmq.config import ClientTLSConfig
+
+# Create a TLS configuration
+tls_config = ClientTLSConfig(
+    cert_file="/path/to/client.crt",
+    key_file="/path/to/client.key",
+    ca_file="/path/to/ca.crt",
+)
+
+# Create a secure client
+with Client(host="localhost", port=8097, tls_config=tls_config) as client:
+    # Connect securely
+    client.connect()
+    print("Connected securely!")
+    
+    # Now you can use the client as in the previous examples
+```
+
+For more detailed examples, refer to the Python client documentation and example files in the `pysmq/examples` directory.
