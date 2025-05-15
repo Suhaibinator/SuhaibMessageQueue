@@ -1,0 +1,15 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Generate Protobuf",
+            "type": "shell",
+            "command": "protoc --proto_path=. --go_out=./proto/ --go_opt=paths=source_relative --go-grpc_out=./proto/ --go-grpc_opt=paths=source_relative smq.proto",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "detail": "Generates Go files from smq.proto using protoc. Assumes protoc, protoc-gen-go, and protoc-gen-go-grpc are installed and in PATH."
+        }
+    ]
+}
