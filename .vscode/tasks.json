@@ -2,7 +2,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Generate Protobuf",
+            "label": "Generate Go Protobuf",
             "type": "shell",
             "command": "protoc --proto_path=. --go_out=./proto/ --go_opt=paths=source_relative --go-grpc_out=./proto/ --go-grpc_opt=paths=source_relative smq.proto",
             "group": {
@@ -10,6 +10,22 @@
                 "isDefault": true
             },
             "detail": "Generates Go files from smq.proto using protoc. Assumes protoc, protoc-gen-go, and protoc-gen-go-grpc are installed and in PATH."
+        },
+        {
+            "label": "Generate Python Protobuf",
+            "type": "shell",
+            "command": "python3 -m grpc_tools.protoc --proto_path=. --python_out=./pysmq/pysmq/proto --grpc_python_out=./pysmq/pysmq/proto smq.proto && python3 -c \"import os, re; f='./pysmq/pysmq/proto/smq_pb2_grpc.py'; content=open(f).read(); open(f, 'w').write(re.sub(r'import smq_pb2', 'from . import smq_pb2', content))\"",
+            "group": "build",
+            "detail": "Generates Python files from smq.proto using grpc_tools.protoc. Requires grpcio-tools to be installed in the Python environment."
+        },
+        {
+            "label": "Generate All Protobuf",
+            "dependsOn": ["Generate Go Protobuf", "Generate Python Protobuf"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "detail": "Generates both Go and Python files from smq.proto."
         }
     ]
 }
