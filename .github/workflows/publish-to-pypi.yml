@@ -12,7 +12,7 @@ jobs:
     # NOTE: You should create a "pypi-publish" environment in GitHub repo settings 
     # and configure it to match what you set up in PyPI trusted publishing
     # Uncomment the following line once your environment is set up in GitHub:
-    # environment: pypi-publish
+    environment: pypi
     permissions:
       id-token: write # Required for trusted publishing (OIDC)
       contents: read  # To checkout the repository
