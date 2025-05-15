@@ -21,17 +21,18 @@ var _ database.DBDriverInterface = (*MockDBDriver)(nil)
 
 // MockDBDriver is a mock implementation of the database driver for testing
 type MockDBDriver struct {
-	topics                        map[string]bool
-	messages                      map[string]map[int64][]byte
-	latestOffsets                 map[string]int64
-	createTopicFunc               func(string) error
-	addMessageToTopicFunc         func(string, []byte) error
-	getMessageAtOffsetFunc        func(string, int64) ([]byte, error)
-	getEarliestOffsetFunc         func(string) (int64, error)
-	getLatestOffsetFunc           func(string) (int64, error)
-	getEarliestMessageFunc        func(string) ([]byte, int64, error)
-	getLatestMessageFunc          func(string) ([]byte, int64, error)
-	deleteMessagesUntilOffsetFunc func(string, int64) error
+	topics                              map[string]bool
+	messages                            map[string]map[int64][]byte
+	latestOffsets                       map[string]int64
+	createTopicFunc                     func(string) error
+	addMessageToTopicFunc               func(string, []byte) error
+	getMessageAtOffsetFunc              func(string, int64) ([]byte, error)
+	getEarliestOffsetFunc               func(string) (int64, error)
+	getLatestOffsetFunc                 func(string) (int64, error)
+	getEarliestMessageFunc              func(string) ([]byte, int64, error)
+	getLatestMessageFunc                func(string) ([]byte, int64, error)
+	deleteMessagesUntilOffsetFunc       func(string, int64) error
+	getMessagesAfterOffsetWithLimitFunc func(topic string, startOffset int64, limit int) ([]database.Message, int64, error)
 }
 
 func NewMockDBDriver() *MockDBDriver {
@@ -170,6 +171,93 @@ func (m *MockDBDriver) Close() {
 
 func (m *MockDBDriver) Debug() {
 	// No-op for mock
+}
+
+func (m *MockDBDriver) GetMessagesAfterOffsetWithLimit(topic string, startOffset int64, limit int) ([]database.Message, int64, error) {
+	if m.getMessagesAfterOffsetWithLimitFunc != nil {
+		return m.getMessagesAfterOffsetWithLimitFunc(topic, startOffset, limit)
+	}
+
+	if _, ok := m.topics[topic]; !ok {
+		return nil, -1, errors.ErrTopicNotFound
+	}
+
+	var resultMessages []database.Message
+	var lastOffsetSeen int64 = -1
+	count := 0
+
+	// Iterate in order of offsets to correctly apply limit
+	// This requires getting all offsets and sorting them, or iterating and sorting if performance is an issue.
+	// For a mock, iterating through the map and then sorting keys is acceptable.
+	var offsets []int64
+	for off := range m.messages[topic] {
+		offsets = append(offsets, off)
+	}
+	// Sort offsets: Go maps don't guarantee order.
+	// A simple sort for testing:
+	for i := 0; i < len(offsets); i++ {
+		for j := i + 1; j < len(offsets); j++ {
+			if offsets[i] > offsets[j] {
+				offsets[i], offsets[j] = offsets[j], offsets[i]
+			}
+		}
+	}
+
+	for _, currentOffset := range offsets {
+		if currentOffset > startOffset {
+			if limit <= 0 || count < limit {
+				msgData := m.messages[topic][currentOffset]
+				resultMessages = append(resultMessages, database.Message{Message: msgData, Offset: currentOffset})
+				lastOffsetSeen = currentOffset
+				count++
+			} else {
+				break // Reached limit
+			}
+		}
+	}
+
+	nextOffset := startOffset
+	if len(resultMessages) > 0 {
+		nextOffset = lastOffsetSeen + 1
+	} else {
+		// If no messages found, nextOffset could be startOffset or latest offset in topic.
+		// For mock simplicity, let's return startOffset + 1 if startOffset is less than latest, else latest.
+		// Or even simpler, if no messages, return startOffset. The server.go logic will handle it.
+		// The current server.go logic uses the returned nextOffset directly.
+		// If no messages are found, and startOffset was valid, nextOffset should ideally be startOffset + 1
+		// or the latest offset if startOffset is already beyond it.
+		// Let's keep it simple: if messages found, lastOffsetSeen + 1. Else, startOffset.
+		// This matches the behavior decided for topic_operations.go
+		nextOffset = startOffset  // Default if no messages found
+		if lastOffsetSeen != -1 { // if any message was processed (even if not > startOffset initially)
+			if len(resultMessages) > 0 {
+				nextOffset = lastOffsetSeen + 1
+			} else { // No messages *after* startOffset were found
+				// if startOffset is already latest or beyond, nextOffset should be startOffset or latest.
+				// if startOffset < m.latestOffsets[topic], nextOffset = startOffset + 1 (or m.latestOffsets[topic] if startOffset+1 > latest)
+				// This logic is a bit tricky for a simple mock.
+				// Let's stick to: if messages are appended to resultMessages, nextOffset = lastOffsetSeen + 1.
+				// Otherwise, nextOffset remains startOffset.
+				if len(resultMessages) == 0 { // No messages met the criteria
+					// Check if startOffset is already at or beyond the latest known offset
+					if latest, ok := m.latestOffsets[topic]; ok {
+						if startOffset >= latest {
+							nextOffset = startOffset // or latest, but startOffset is fine
+						} else {
+							// If there are messages in the topic but none after startOffset,
+							// next offset could be latestOffset + 1 or startOffset + 1
+							// For simplicity, if no messages are returned, the next offset is the startOffset.
+							// The server can then decide if it should be latest known offset.
+						}
+					}
+				}
+
+			}
+		}
+
+	}
+
+	return resultMessages, nextOffset, nil
 }
 
 // Setup a gRPC server and client for testing

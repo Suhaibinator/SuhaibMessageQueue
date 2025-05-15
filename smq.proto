@@ -20,6 +20,24 @@ service SuhaibMessageQueue {
     rpc StreamConsume (ConsumeRequest) returns (stream ConsumeResponse) {}
 
     rpc DeleteUntilOffset (DeleteUntilOffsetRequest) returns (DeleteUntilOffsetResponse) {}
+    rpc BulkRetrieve (BulkRetrieveRequest) returns (BulkRetrieveResponse) {}
+}
+
+message RetrievedMessage {
+    bytes message = 1;
+    int64 offset = 2;
+}
+
+message BulkRetrieveRequest {
+    string topic = 1;
+    int64 start_offset = 2;
+    int32 limit = 3;
+}
+
+message BulkRetrieveResponse {
+    repeated RetrievedMessage messages = 1;
+    int32 count = 2;
+    int64 next_offset = 3;
 }
 
 message ConnectRequest {

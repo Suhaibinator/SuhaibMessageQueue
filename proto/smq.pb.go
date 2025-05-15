@@ -21,6 +21,178 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type RetrievedMessage struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Message       []byte                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	Offset        int64                  `protobuf:"varint,2,opt,name=offset,proto3" json:"offset,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RetrievedMessage) Reset() {
+	*x = RetrievedMessage{}
+	mi := &file_smq_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RetrievedMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RetrievedMessage) ProtoMessage() {}
+
+func (x *RetrievedMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_smq_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RetrievedMessage.ProtoReflect.Descriptor instead.
+func (*RetrievedMessage) Descriptor() ([]byte, []int) {
+	return file_smq_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *RetrievedMessage) GetMessage() []byte {
+	if x != nil {
+		return x.Message
+	}
+	return nil
+}
+
+func (x *RetrievedMessage) GetOffset() int64 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
+type BulkRetrieveRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Topic         string                 `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic,omitempty"`
+	StartOffset   int64                  `protobuf:"varint,2,opt,name=start_offset,json=startOffset,proto3" json:"start_offset,omitempty"`
+	Limit         int32                  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BulkRetrieveRequest) Reset() {
+	*x = BulkRetrieveRequest{}
+	mi := &file_smq_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BulkRetrieveRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BulkRetrieveRequest) ProtoMessage() {}
+
+func (x *BulkRetrieveRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_smq_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BulkRetrieveRequest.ProtoReflect.Descriptor instead.
+func (*BulkRetrieveRequest) Descriptor() ([]byte, []int) {
+	return file_smq_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *BulkRetrieveRequest) GetTopic() string {
+	if x != nil {
+		return x.Topic
+	}
+	return ""
+}
+
+func (x *BulkRetrieveRequest) GetStartOffset() int64 {
+	if x != nil {
+		return x.StartOffset
+	}
+	return 0
+}
+
+func (x *BulkRetrieveRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type BulkRetrieveResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Messages      []*RetrievedMessage    `protobuf:"bytes,1,rep,name=messages,proto3" json:"messages,omitempty"`
+	Count         int32                  `protobuf:"varint,2,opt,name=count,proto3" json:"count,omitempty"`
+	NextOffset    int64                  `protobuf:"varint,3,opt,name=next_offset,json=nextOffset,proto3" json:"next_offset,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BulkRetrieveResponse) Reset() {
+	*x = BulkRetrieveResponse{}
+	mi := &file_smq_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BulkRetrieveResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BulkRetrieveResponse) ProtoMessage() {}
+
+func (x *BulkRetrieveResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_smq_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BulkRetrieveResponse.ProtoReflect.Descriptor instead.
+func (*BulkRetrieveResponse) Descriptor() ([]byte, []int) {
+	return file_smq_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *BulkRetrieveResponse) GetMessages() []*RetrievedMessage {
+	if x != nil {
+		return x.Messages
+	}
+	return nil
+}
+
+func (x *BulkRetrieveResponse) GetCount() int32 {
+	if x != nil {
+		return x.Count
+	}
+	return 0
+}
+
+func (x *BulkRetrieveResponse) GetNextOffset() int64 {
+	if x != nil {
+		return x.NextOffset
+	}
+	return 0
+}
+
 type ConnectRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -29,7 +201,7 @@ type ConnectRequest struct {
 
 func (x *ConnectRequest) Reset() {
 	*x = ConnectRequest{}
-	mi := &file_smq_proto_msgTypes[0]
+	mi := &file_smq_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -41,7 +213,7 @@ func (x *ConnectRequest) String() string {
 func (*ConnectRequest) ProtoMessage() {}
 
 func (x *ConnectRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_smq_proto_msgTypes[0]
+	mi := &file_smq_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -54,7 +226,7 @@ func (x *ConnectRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConnectRequest.ProtoReflect.Descriptor instead.
 func (*ConnectRequest) Descriptor() ([]byte, []int) {
-	return file_smq_proto_rawDescGZIP(), []int{0}
+	return file_smq_proto_rawDescGZIP(), []int{3}
 }
 
 type ConnectResponse struct {
@@ -65,7 +237,7 @@ type ConnectResponse struct {
 
 func (x *ConnectResponse) Reset() {
 	*x = ConnectResponse{}
-	mi := &file_smq_proto_msgTypes[1]
+	mi := &file_smq_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -77,7 +249,7 @@ func (x *ConnectResponse) String() string {
 func (*ConnectResponse) ProtoMessage() {}
 
 func (x *ConnectResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_smq_proto_msgTypes[1]
+	mi := &file_smq_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -90,7 +262,7 @@ func (x *ConnectResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConnectResponse.ProtoReflect.Descriptor instead.
 func (*ConnectResponse) Descriptor() ([]byte, []int) {
-	return file_smq_proto_rawDescGZIP(), []int{1}
+	return file_smq_proto_rawDescGZIP(), []int{4}
 }
 
 type GetLatestOffsetRequest struct {
@@ -102,7 +274,7 @@ type GetLatestOffsetRequest struct {
 
 func (x *GetLatestOffsetRequest) Reset() {
 	*x = GetLatestOffsetRequest{}
-	mi := &file_smq_proto_msgTypes[2]
+	mi := &file_smq_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -114,7 +286,7 @@ func (x *GetLatestOffsetRequest) String() string {
 func (*GetLatestOffsetRequest) ProtoMessage() {}
 
 func (x *GetLatestOffsetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_smq_proto_msgTypes[2]
+	mi := &file_smq_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -127,7 +299,7 @@ func (x *GetLatestOffsetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLatestOffsetRequest.ProtoReflect.Descriptor instead.
 func (*GetLatestOffsetRequest) Descriptor() ([]byte, []int) {
-	return file_smq_proto_rawDescGZIP(), []int{2}
+	return file_smq_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetLatestOffsetRequest) GetTopic() string {
@@ -146,7 +318,7 @@ type GetLatestOffsetResponse struct {
 
 func (x *GetLatestOffsetResponse) Reset() {
 	*x = GetLatestOffsetResponse{}
-	mi := &file_smq_proto_msgTypes[3]
+	mi := &file_smq_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -158,7 +330,7 @@ func (x *GetLatestOffsetResponse) String() string {
 func (*GetLatestOffsetResponse) ProtoMessage() {}
 
 func (x *GetLatestOffsetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_smq_proto_msgTypes[3]
+	mi := &file_smq_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -171,7 +343,7 @@ func (x *GetLatestOffsetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLatestOffsetResponse.ProtoReflect.Descriptor instead.
 func (*GetLatestOffsetResponse) Descriptor() ([]byte, []int) {
-	return file_smq_proto_rawDescGZIP(), []int{3}
+	return file_smq_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GetLatestOffsetResponse) GetOffset() int64 {
@@ -190,7 +362,7 @@ type GetEarliestOffsetRequest struct {
 
 func (x *GetEarliestOffsetRequest) Reset() {
 	*x = GetEarliestOffsetRequest{}
-	mi := &file_smq_proto_msgTypes[4]
+	mi := &file_smq_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -202,7 +374,7 @@ func (x *GetEarliestOffsetRequest) String() string {
 func (*GetEarliestOffsetRequest) ProtoMessage() {}
 
 func (x *GetEarliestOffsetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_smq_proto_msgTypes[4]
+	mi := &file_smq_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -215,7 +387,7 @@ func (x *GetEarliestOffsetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetEarliestOffsetRequest.ProtoReflect.Descriptor instead.
 func (*GetEarliestOffsetRequest) Descriptor() ([]byte, []int) {
-	return file_smq_proto_rawDescGZIP(), []int{4}
+	return file_smq_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *GetEarliestOffsetRequest) GetTopic() string {
@@ -234,7 +406,7 @@ type GetEarliestOffsetResponse struct {
 
 func (x *GetEarliestOffsetResponse) Reset() {
 	*x = GetEarliestOffsetResponse{}
-	mi := &file_smq_proto_msgTypes[5]
+	mi := &file_smq_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -246,7 +418,7 @@ func (x *GetEarliestOffsetResponse) String() string {
 func (*GetEarliestOffsetResponse) ProtoMessage() {}
 
 func (x *GetEarliestOffsetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_smq_proto_msgTypes[5]
+	mi := &file_smq_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -259,7 +431,7 @@ func (x *GetEarliestOffsetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetEarliestOffsetResponse.ProtoReflect.Descriptor instead.
 func (*GetEarliestOffsetResponse) Descriptor() ([]byte, []int) {
-	return file_smq_proto_rawDescGZIP(), []int{5}
+	return file_smq_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GetEarliestOffsetResponse) GetOffset() int64 {
@@ -278,7 +450,7 @@ type CreateTopicRequest struct {
 
 func (x *CreateTopicRequest) Reset() {
 	*x = CreateTopicRequest{}
-	mi := &file_smq_proto_msgTypes[6]
+	mi := &file_smq_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -290,7 +462,7 @@ func (x *CreateTopicRequest) String() string {
 func (*CreateTopicRequest) ProtoMessage() {}
 
 func (x *CreateTopicRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_smq_proto_msgTypes[6]
+	mi := &file_smq_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -303,7 +475,7 @@ func (x *CreateTopicRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateTopicRequest.ProtoReflect.Descriptor instead.
 func (*CreateTopicRequest) Descriptor() ([]byte, []int) {
-	return file_smq_proto_rawDescGZIP(), []int{6}
+	return file_smq_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *CreateTopicRequest) GetTopic() string {
@@ -321,7 +493,7 @@ type CreateTopicResponse struct {
 
 func (x *CreateTopicResponse) Reset() {
 	*x = CreateTopicResponse{}
-	mi := &file_smq_proto_msgTypes[7]
+	mi := &file_smq_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -333,7 +505,7 @@ func (x *CreateTopicResponse) String() string {
 func (*CreateTopicResponse) ProtoMessage() {}
 
 func (x *CreateTopicResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_smq_proto_msgTypes[7]
+	mi := &file_smq_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -346,7 +518,7 @@ func (x *CreateTopicResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateTopicResponse.ProtoReflect.Descriptor instead.
 func (*CreateTopicResponse) Descriptor() ([]byte, []int) {
-	return file_smq_proto_rawDescGZIP(), []int{7}
+	return file_smq_proto_rawDescGZIP(), []int{10}
 }
 
 type ProduceRequest struct {
@@ -359,7 +531,7 @@ type ProduceRequest struct {
 
 func (x *ProduceRequest) Reset() {
 	*x = ProduceRequest{}
-	mi := &file_smq_proto_msgTypes[8]
+	mi := &file_smq_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -371,7 +543,7 @@ func (x *ProduceRequest) String() string {
 func (*ProduceRequest) ProtoMessage() {}
 
 func (x *ProduceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_smq_proto_msgTypes[8]
+	mi := &file_smq_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -384,7 +556,7 @@ func (x *ProduceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProduceRequest.ProtoReflect.Descriptor instead.
 func (*ProduceRequest) Descriptor() ([]byte, []int) {
-	return file_smq_proto_rawDescGZIP(), []int{8}
+	return file_smq_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ProduceRequest) GetTopic() string {
@@ -410,7 +582,7 @@ type ProduceResponse struct {
 
 func (x *ProduceResponse) Reset() {
 	*x = ProduceResponse{}
-	mi := &file_smq_proto_msgTypes[9]
+	mi := &file_smq_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -422,7 +594,7 @@ func (x *ProduceResponse) String() string {
 func (*ProduceResponse) ProtoMessage() {}
 
 func (x *ProduceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_smq_proto_msgTypes[9]
+	mi := &file_smq_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -435,7 +607,7 @@ func (x *ProduceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProduceResponse.ProtoReflect.Descriptor instead.
 func (*ProduceResponse) Descriptor() ([]byte, []int) {
-	return file_smq_proto_rawDescGZIP(), []int{9}
+	return file_smq_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ProduceResponse) GetOffset() int64 {
@@ -455,7 +627,7 @@ type ConsumeRequest struct {
 
 func (x *ConsumeRequest) Reset() {
 	*x = ConsumeRequest{}
-	mi := &file_smq_proto_msgTypes[10]
+	mi := &file_smq_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -467,7 +639,7 @@ func (x *ConsumeRequest) String() string {
 func (*ConsumeRequest) ProtoMessage() {}
 
 func (x *ConsumeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_smq_proto_msgTypes[10]
+	mi := &file_smq_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -480,7 +652,7 @@ func (x *ConsumeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConsumeRequest.ProtoReflect.Descriptor instead.
 func (*ConsumeRequest) Descriptor() ([]byte, []int) {
-	return file_smq_proto_rawDescGZIP(), []int{10}
+	return file_smq_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ConsumeRequest) GetTopic() string {
@@ -507,7 +679,7 @@ type ConsumeResponse struct {
 
 func (x *ConsumeResponse) Reset() {
 	*x = ConsumeResponse{}
-	mi := &file_smq_proto_msgTypes[11]
+	mi := &file_smq_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -519,7 +691,7 @@ func (x *ConsumeResponse) String() string {
 func (*ConsumeResponse) ProtoMessage() {}
 
 func (x *ConsumeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_smq_proto_msgTypes[11]
+	mi := &file_smq_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -532,7 +704,7 @@ func (x *ConsumeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConsumeResponse.ProtoReflect.Descriptor instead.
 func (*ConsumeResponse) Descriptor() ([]byte, []int) {
-	return file_smq_proto_rawDescGZIP(), []int{11}
+	return file_smq_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ConsumeResponse) GetMessage() []byte {
@@ -559,7 +731,7 @@ type DeleteUntilOffsetRequest struct {
 
 func (x *DeleteUntilOffsetRequest) Reset() {
 	*x = DeleteUntilOffsetRequest{}
-	mi := &file_smq_proto_msgTypes[12]
+	mi := &file_smq_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -571,7 +743,7 @@ func (x *DeleteUntilOffsetRequest) String() string {
 func (*DeleteUntilOffsetRequest) ProtoMessage() {}
 
 func (x *DeleteUntilOffsetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_smq_proto_msgTypes[12]
+	mi := &file_smq_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -584,7 +756,7 @@ func (x *DeleteUntilOffsetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteUntilOffsetRequest.ProtoReflect.Descriptor instead.
 func (*DeleteUntilOffsetRequest) Descriptor() ([]byte, []int) {
-	return file_smq_proto_rawDescGZIP(), []int{12}
+	return file_smq_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *DeleteUntilOffsetRequest) GetTopic() string {
@@ -609,7 +781,7 @@ type DeleteUntilOffsetResponse struct {
 
 func (x *DeleteUntilOffsetResponse) Reset() {
 	*x = DeleteUntilOffsetResponse{}
-	mi := &file_smq_proto_msgTypes[13]
+	mi := &file_smq_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -621,7 +793,7 @@ func (x *DeleteUntilOffsetResponse) String() string {
 func (*DeleteUntilOffsetResponse) ProtoMessage() {}
 
 func (x *DeleteUntilOffsetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_smq_proto_msgTypes[13]
+	mi := &file_smq_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -634,14 +806,26 @@ func (x *DeleteUntilOffsetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteUntilOffsetResponse.ProtoReflect.Descriptor instead.
 func (*DeleteUntilOffsetResponse) Descriptor() ([]byte, []int) {
-	return file_smq_proto_rawDescGZIP(), []int{13}
+	return file_smq_proto_rawDescGZIP(), []int{16}
 }
 
 var File_smq_proto protoreflect.FileDescriptor
 
 const file_smq_proto_rawDesc = "" +
 	"\n" +
-	"\tsmq.proto\x12\x03smq\"\x10\n" +
+	"\tsmq.proto\x12\x03smq\"D\n" +
+	"\x10RetrievedMessage\x12\x18\n" +
+	"\amessage\x18\x01 \x01(\fR\amessage\x12\x16\n" +
+	"\x06offset\x18\x02 \x01(\x03R\x06offset\"d\n" +
+	"\x13BulkRetrieveRequest\x12\x14\n" +
+	"\x05topic\x18\x01 \x01(\tR\x05topic\x12!\n" +
+	"\fstart_offset\x18\x02 \x01(\x03R\vstartOffset\x12\x14\n" +
+	"\x05limit\x18\x03 \x01(\x05R\x05limit\"\x80\x01\n" +
+	"\x14BulkRetrieveResponse\x121\n" +
+	"\bmessages\x18\x01 \x03(\v2\x15.smq.RetrievedMessageR\bmessages\x12\x14\n" +
+	"\x05count\x18\x02 \x01(\x05R\x05count\x12\x1f\n" +
+	"\vnext_offset\x18\x03 \x01(\x03R\n" +
+	"nextOffset\"\x10\n" +
 	"\x0eConnectRequest\"\x11\n" +
 	"\x0fConnectResponse\".\n" +
 	"\x16GetLatestOffsetRequest\x12\x14\n" +
@@ -669,7 +853,7 @@ const file_smq_proto_rawDesc = "" +
 	"\x18DeleteUntilOffsetRequest\x12\x14\n" +
 	"\x05topic\x18\x01 \x01(\tR\x05topic\x12\x16\n" +
 	"\x06offset\x18\x02 \x01(\x03R\x06offset\"\x1b\n" +
-	"\x19DeleteUntilOffsetResponse2\xfc\x04\n" +
+	"\x19DeleteUntilOffsetResponse2\xc3\x05\n" +
 	"\x12SuhaibMessageQueue\x126\n" +
 	"\aConnect\x12\x13.smq.ConnectRequest\x1a\x14.smq.ConnectResponse\"\x00\x12N\n" +
 	"\x0fGetLatestOffset\x12\x1b.smq.GetLatestOffsetRequest\x1a\x1c.smq.GetLatestOffsetResponse\"\x00\x12T\n" +
@@ -679,7 +863,8 @@ const file_smq_proto_rawDesc = "" +
 	"\aConsume\x12\x13.smq.ConsumeRequest\x1a\x14.smq.ConsumeResponse\"\x00\x12>\n" +
 	"\rStreamProduce\x12\x13.smq.ProduceRequest\x1a\x14.smq.ProduceResponse\"\x00(\x01\x12>\n" +
 	"\rStreamConsume\x12\x13.smq.ConsumeRequest\x1a\x14.smq.ConsumeResponse\"\x000\x01\x12T\n" +
-	"\x11DeleteUntilOffset\x12\x1d.smq.DeleteUntilOffsetRequest\x1a\x1e.smq.DeleteUntilOffsetResponse\"\x00B\tZ\a./protob\x06proto3"
+	"\x11DeleteUntilOffset\x12\x1d.smq.DeleteUntilOffsetRequest\x1a\x1e.smq.DeleteUntilOffsetResponse\"\x00\x12E\n" +
+	"\fBulkRetrieve\x12\x18.smq.BulkRetrieveRequest\x1a\x19.smq.BulkRetrieveResponse\"\x00B\tZ\a./protob\x06proto3"
 
 var (
 	file_smq_proto_rawDescOnce sync.Once
@@ -693,47 +878,53 @@ func file_smq_proto_rawDescGZIP() []byte {
 	return file_smq_proto_rawDescData
 }
 
-var file_smq_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_smq_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_smq_proto_goTypes = []any{
-	(*ConnectRequest)(nil),            // 0: smq.ConnectRequest
-	(*ConnectResponse)(nil),           // 1: smq.ConnectResponse
-	(*GetLatestOffsetRequest)(nil),    // 2: smq.GetLatestOffsetRequest
-	(*GetLatestOffsetResponse)(nil),   // 3: smq.GetLatestOffsetResponse
-	(*GetEarliestOffsetRequest)(nil),  // 4: smq.GetEarliestOffsetRequest
-	(*GetEarliestOffsetResponse)(nil), // 5: smq.GetEarliestOffsetResponse
-	(*CreateTopicRequest)(nil),        // 6: smq.CreateTopicRequest
-	(*CreateTopicResponse)(nil),       // 7: smq.CreateTopicResponse
-	(*ProduceRequest)(nil),            // 8: smq.ProduceRequest
-	(*ProduceResponse)(nil),           // 9: smq.ProduceResponse
-	(*ConsumeRequest)(nil),            // 10: smq.ConsumeRequest
-	(*ConsumeResponse)(nil),           // 11: smq.ConsumeResponse
-	(*DeleteUntilOffsetRequest)(nil),  // 12: smq.DeleteUntilOffsetRequest
-	(*DeleteUntilOffsetResponse)(nil), // 13: smq.DeleteUntilOffsetResponse
+	(*RetrievedMessage)(nil),          // 0: smq.RetrievedMessage
+	(*BulkRetrieveRequest)(nil),       // 1: smq.BulkRetrieveRequest
+	(*BulkRetrieveResponse)(nil),      // 2: smq.BulkRetrieveResponse
+	(*ConnectRequest)(nil),            // 3: smq.ConnectRequest
+	(*ConnectResponse)(nil),           // 4: smq.ConnectResponse
+	(*GetLatestOffsetRequest)(nil),    // 5: smq.GetLatestOffsetRequest
+	(*GetLatestOffsetResponse)(nil),   // 6: smq.GetLatestOffsetResponse
+	(*GetEarliestOffsetRequest)(nil),  // 7: smq.GetEarliestOffsetRequest
+	(*GetEarliestOffsetResponse)(nil), // 8: smq.GetEarliestOffsetResponse
+	(*CreateTopicRequest)(nil),        // 9: smq.CreateTopicRequest
+	(*CreateTopicResponse)(nil),       // 10: smq.CreateTopicResponse
+	(*ProduceRequest)(nil),            // 11: smq.ProduceRequest
+	(*ProduceResponse)(nil),           // 12: smq.ProduceResponse
+	(*ConsumeRequest)(nil),            // 13: smq.ConsumeRequest
+	(*ConsumeResponse)(nil),           // 14: smq.ConsumeResponse
+	(*DeleteUntilOffsetRequest)(nil),  // 15: smq.DeleteUntilOffsetRequest
+	(*DeleteUntilOffsetResponse)(nil), // 16: smq.DeleteUntilOffsetResponse
 }
 var file_smq_proto_depIdxs = []int32{
-	0,  // 0: smq.SuhaibMessageQueue.Connect:input_type -> smq.ConnectRequest
-	2,  // 1: smq.SuhaibMessageQueue.GetLatestOffset:input_type -> smq.GetLatestOffsetRequest
-	4,  // 2: smq.SuhaibMessageQueue.GetEarliestOffset:input_type -> smq.GetEarliestOffsetRequest
-	6,  // 3: smq.SuhaibMessageQueue.CreateTopic:input_type -> smq.CreateTopicRequest
-	8,  // 4: smq.SuhaibMessageQueue.Produce:input_type -> smq.ProduceRequest
-	10, // 5: smq.SuhaibMessageQueue.Consume:input_type -> smq.ConsumeRequest
-	8,  // 6: smq.SuhaibMessageQueue.StreamProduce:input_type -> smq.ProduceRequest
-	10, // 7: smq.SuhaibMessageQueue.StreamConsume:input_type -> smq.ConsumeRequest
-	12, // 8: smq.SuhaibMessageQueue.DeleteUntilOffset:input_type -> smq.DeleteUntilOffsetRequest
-	1,  // 9: smq.SuhaibMessageQueue.Connect:output_type -> smq.ConnectResponse
-	3,  // 10: smq.SuhaibMessageQueue.GetLatestOffset:output_type -> smq.GetLatestOffsetResponse
-	5,  // 11: smq.SuhaibMessageQueue.GetEarliestOffset:output_type -> smq.GetEarliestOffsetResponse
-	7,  // 12: smq.SuhaibMessageQueue.CreateTopic:output_type -> smq.CreateTopicResponse
-	9,  // 13: smq.SuhaibMessageQueue.Produce:output_type -> smq.ProduceResponse
-	11, // 14: smq.SuhaibMessageQueue.Consume:output_type -> smq.ConsumeResponse
-	9,  // 15: smq.SuhaibMessageQueue.StreamProduce:output_type -> smq.ProduceResponse
-	11, // 16: smq.SuhaibMessageQueue.StreamConsume:output_type -> smq.ConsumeResponse
-	13, // 17: smq.SuhaibMessageQueue.DeleteUntilOffset:output_type -> smq.DeleteUntilOffsetResponse
-	9,  // [9:18] is the sub-list for method output_type
-	0,  // [0:9] is the sub-list for method input_type
-	0,  // [0:0] is the sub-list for extension type_name
-	0,  // [0:0] is the sub-list for extension extendee
-	0,  // [0:0] is the sub-list for field type_name
+	0,  // 0: smq.BulkRetrieveResponse.messages:type_name -> smq.RetrievedMessage
+	3,  // 1: smq.SuhaibMessageQueue.Connect:input_type -> smq.ConnectRequest
+	5,  // 2: smq.SuhaibMessageQueue.GetLatestOffset:input_type -> smq.GetLatestOffsetRequest
+	7,  // 3: smq.SuhaibMessageQueue.GetEarliestOffset:input_type -> smq.GetEarliestOffsetRequest
+	9,  // 4: smq.SuhaibMessageQueue.CreateTopic:input_type -> smq.CreateTopicRequest
+	11, // 5: smq.SuhaibMessageQueue.Produce:input_type -> smq.ProduceRequest
+	13, // 6: smq.SuhaibMessageQueue.Consume:input_type -> smq.ConsumeRequest
+	11, // 7: smq.SuhaibMessageQueue.StreamProduce:input_type -> smq.ProduceRequest
+	13, // 8: smq.SuhaibMessageQueue.StreamConsume:input_type -> smq.ConsumeRequest
+	15, // 9: smq.SuhaibMessageQueue.DeleteUntilOffset:input_type -> smq.DeleteUntilOffsetRequest
+	1,  // 10: smq.SuhaibMessageQueue.BulkRetrieve:input_type -> smq.BulkRetrieveRequest
+	4,  // 11: smq.SuhaibMessageQueue.Connect:output_type -> smq.ConnectResponse
+	6,  // 12: smq.SuhaibMessageQueue.GetLatestOffset:output_type -> smq.GetLatestOffsetResponse
+	8,  // 13: smq.SuhaibMessageQueue.GetEarliestOffset:output_type -> smq.GetEarliestOffsetResponse
+	10, // 14: smq.SuhaibMessageQueue.CreateTopic:output_type -> smq.CreateTopicResponse
+	12, // 15: smq.SuhaibMessageQueue.Produce:output_type -> smq.ProduceResponse
+	14, // 16: smq.SuhaibMessageQueue.Consume:output_type -> smq.ConsumeResponse
+	12, // 17: smq.SuhaibMessageQueue.StreamProduce:output_type -> smq.ProduceResponse
+	14, // 18: smq.SuhaibMessageQueue.StreamConsume:output_type -> smq.ConsumeResponse
+	16, // 19: smq.SuhaibMessageQueue.DeleteUntilOffset:output_type -> smq.DeleteUntilOffsetResponse
+	2,  // 20: smq.SuhaibMessageQueue.BulkRetrieve:output_type -> smq.BulkRetrieveResponse
+	11, // [11:21] is the sub-list for method output_type
+	1,  // [1:11] is the sub-list for method input_type
+	1,  // [1:1] is the sub-list for extension type_name
+	1,  // [1:1] is the sub-list for extension extendee
+	0,  // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_smq_proto_init() }
@@ -747,7 +938,7 @@ func file_smq_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_smq_proto_rawDesc), len(file_smq_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   14,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

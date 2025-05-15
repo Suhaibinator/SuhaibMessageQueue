@@ -215,3 +215,24 @@ func (s *Server) Debug() {
 func (s *Server) Connect(ctx context.Context, req *pb.ConnectRequest) (*pb.ConnectResponse, error) {
 	return &pb.ConnectResponse{}, nil
 }
+
+func (s *Server) BulkRetrieve(ctx context.Context, brr *pb.BulkRetrieveRequest) (*pb.BulkRetrieveResponse, error) {
+	dbMessages, nextOffset, err := s.driver.GetMessagesAfterOffsetWithLimit(brr.Topic, brr.StartOffset, int(brr.Limit))
+	if err != nil {
+		return nil, err
+	}
+
+	retrievedMessages := make([]*pb.RetrievedMessage, len(dbMessages))
+	for i, dbMsg := range dbMessages {
+		retrievedMessages[i] = &pb.RetrievedMessage{
+			Message: dbMsg.Message,
+			Offset:  dbMsg.Offset,
+		}
+	}
+
+	return &pb.BulkRetrieveResponse{
+		Messages:   retrievedMessages,
+		Count:      int32(len(retrievedMessages)),
+		NextOffset: nextOffset,
+	}, nil
+}
