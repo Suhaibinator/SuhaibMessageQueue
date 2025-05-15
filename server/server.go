@@ -11,6 +11,7 @@ import (
 	pb "github.com/Suhaibinator/SuhaibMessageQueue/proto"
 	"github.com/Suhaibinator/SuhaibMessageQueue/server/database"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 type Server struct {
@@ -160,10 +161,24 @@ func NewServer(port, dbPath string) *Server {
 		log.Fatalf("failed to create database driver: %v", err)
 	}
 
-	grpcServer := grpc.NewServer(
-		grpc.MaxRecvMsgSize(1024*1024*1024),
-		grpc.MaxSendMsgSize(1024*1024*1024),
-	)
+	var serverOpts []grpc.ServerOption
+	serverOpts = append(serverOpts, grpc.MaxRecvMsgSize(1024*1024*1024))
+	serverOpts = append(serverOpts, grpc.MaxSendMsgSize(1024*1024*1024))
+
+	if config.ServerEnableMTLS {
+		tlsConfig := config.LoadServerTLSConfig()
+		if tlsConfig != nil {
+			creds := credentials.NewTLS(tlsConfig)
+			serverOpts = append(serverOpts, grpc.Creds(creds))
+			log.Println("mTLS is enabled for the server.")
+		} else {
+			log.Println("Warning: Server mTLS is enabled in config, but failed to load TLS configuration. Server will start without mTLS.")
+		}
+	} else {
+		log.Println("mTLS is not enabled for the server.")
+	}
+
+	grpcServer := grpc.NewServer(serverOpts...)
 	pb.RegisterSuhaibMessageQueueServer(grpcServer, &Server{driver: driver})
 
 	return &Server{

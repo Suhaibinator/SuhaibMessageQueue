@@ -2,13 +2,19 @@ package client
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
+	"fmt"
 	"io"
+	"net"
+	"os"
 	"time"
 
 	"github.com/Suhaibinator/SuhaibMessageQueue/config"
 	pb "github.com/Suhaibinator/SuhaibMessageQueue/proto"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
@@ -19,14 +25,60 @@ type Client struct {
 }
 
 // NewClient creates a new client
-func NewClient(address, port string) (*Client, error) {
-	conn, err := grpc.NewClient(address+":"+port, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(1024*1024*1024), grpc.MaxCallSendMsgSize(1024*1024*1024)))
-	if err != nil {
-		return nil, err
+// It accepts an optional tlsCfg to enable mTLS.
+// If tlsCfg is nil, it defaults to an insecure connection.
+func NewClient(address, port string, tlsCfg *config.ClientTLSConfig) (*Client, error) {
+	var creds credentials.TransportCredentials
+	var err error
+
+	if tlsCfg != nil {
+		// mTLS is enabled, load credentials
+		clientCert, errLoad := tls.LoadX509KeyPair(tlsCfg.CertFile, tlsCfg.KeyFile)
+		if errLoad != nil {
+			return nil, fmt.Errorf("client: failed to load client certificate/key: %w", errLoad)
+		}
+
+		caCertPEM, errLoad := os.ReadFile(tlsCfg.CAFile)
+		if errLoad != nil {
+			return nil, fmt.Errorf("client: failed to read CA certificate: %w", errLoad)
+		}
+
+		caCertPool := x509.NewCertPool()
+		if !caCertPool.AppendCertsFromPEM(caCertPEM) {
+			return nil, fmt.Errorf("client: failed to append CA certificate to pool")
+		}
+
+		// Extract the hostname from the address for ServerName
+		host, _, err := net.SplitHostPort(address)
+		if err != nil {
+			return nil, fmt.Errorf("client: invalid address format: %w", err)
+		}
+
+		tlsCredentials := &tls.Config{
+			Certificates: []tls.Certificate{clientCert},
+			RootCAs:      caCertPool,
+			ServerName:   host, // Set the ServerName for proper certificate verification
+		}
+		creds = credentials.NewTLS(tlsCredentials)
+	} else {
+		// mTLS is not enabled, use insecure credentials
+		creds = insecure.NewCredentials()
 	}
+
+	// Establish the gRPC connection
+	conn, err := grpc.NewClient(address+":"+port,
+		grpc.WithTransportCredentials(creds),
+		grpc.WithDefaultCallOptions(
+			grpc.MaxCallRecvMsgSize(1024*1024*1024), // 1GB
+			grpc.MaxCallSendMsgSize(1024*1024*1024), // 1GB
+		),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("client: failed to connect to server: %w", err)
+	}
+
 	client := pb.NewSuhaibMessageQueueClient(conn)
-	return &Client{conn: conn,
-		client: client}, nil
+	return &Client{conn: conn, client: client}, nil
 }
 
 // Produce sends a message to the server
