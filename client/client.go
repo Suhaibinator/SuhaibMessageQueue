@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/Suhaibinator/SuhaibMessageQueue/config"
@@ -48,16 +49,20 @@ func NewClient(address, port string, tlsCfg *config.ClientTLSConfig) (*Client, e
 			return nil, fmt.Errorf("client: failed to append CA certificate to pool")
 		}
 
-		// Extract the hostname from the address for ServerName
-		host, _, err := net.SplitHostPort(address)
-		if err != nil {
-			return nil, fmt.Errorf("client: invalid address format: %w", err)
+		// Determine the hostname for TLS verification. The address may not
+		// contain a port, so attempt to split host and port. If splitting
+		// fails, use the address as-is.
+		host := address
+		if strings.Contains(address, ":") {
+			if h, _, err := net.SplitHostPort(address); err == nil {
+				host = h
+			}
 		}
 
 		tlsCredentials := &tls.Config{
 			Certificates: []tls.Certificate{clientCert},
 			RootCAs:      caCertPool,
-			ServerName:   host, // Set the ServerName for proper certificate verification
+			ServerName:   host, // Use the resolved host for certificate verification
 		}
 		creds = credentials.NewTLS(tlsCredentials)
 	} else {
