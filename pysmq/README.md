@@ -216,9 +216,9 @@ The client supports various configuration options:
 from pysmq.config import ClientTLSConfig, ClientConfig
 
 # Default timeout values can be accessed or modified
-ClientConfig.DEFAULT_TIMEOUT = 60.0  # Default timeout for most operations
-ClientConfig.DEFAULT_TOPIC_TIMEOUT = 2.0  # Default timeout for topic creation
-ClientConfig.DEFAULT_DELETE_TIMEOUT = 2.0  # Default timeout for deletion operations
+ClientConfig.DEFAULT_TIMEOUT = 100.0  # Default timeout for most operations
+ClientConfig.DEFAULT_TOPIC_TIMEOUT = 1.0  # Default timeout for topic creation
+ClientConfig.DEFAULT_DELETE_TIMEOUT = 1.0  # Default timeout for deletion operations
 ```
 
 ## Examples
