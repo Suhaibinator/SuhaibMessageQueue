@@ -661,3 +661,53 @@ func TestStreamProducer(t *testing.T) {
 		}
 	}
 }
+
+func TestBulkRetrieve(t *testing.T) {
+	s, client, cleanup := setupTest(t)
+	defer cleanup()
+
+	// Create a topic
+	_, err := client.CreateTopic(context.Background(), &pb.CreateTopicRequest{Topic: "test_topic"})
+	if err != nil {
+		t.Fatalf("Failed to create topic: %v", err)
+	}
+
+	// Preload messages
+	mockDriver := s.driver.(*MockDBDriver)
+	messages := []string{"msg1", "msg2", "msg3", "msg4"}
+	for _, msg := range messages {
+		if err := mockDriver.AddMessageToTopic("test_topic", []byte(msg)); err != nil {
+			t.Fatalf("Failed to preload message: %v", err)
+		}
+	}
+
+	// Retrieve first three messages
+	resp, err := client.BulkRetrieve(context.Background(), &pb.BulkRetrieveRequest{
+		Topic:       "test_topic",
+		StartOffset: 0,
+		Limit:       3,
+	})
+	if err != nil {
+		t.Fatalf("BulkRetrieve failed: %v", err)
+	}
+
+	if resp.Count != 3 {
+		t.Errorf("Expected count 3, got %d", resp.Count)
+	}
+	if len(resp.Messages) != 3 {
+		t.Fatalf("Expected 3 messages, got %d", len(resp.Messages))
+	}
+	for i, m := range resp.Messages {
+		expectedMsg := messages[i]
+		expectedOffset := int64(i + 1)
+		if string(m.Message) != expectedMsg {
+			t.Errorf("Expected message %q at index %d, got %q", expectedMsg, i, string(m.Message))
+		}
+		if m.Offset != expectedOffset {
+			t.Errorf("Expected offset %d, got %d", expectedOffset, m.Offset)
+		}
+	}
+	if resp.NextOffset != 4 {
+		t.Errorf("Expected next_offset 4, got %d", resp.NextOffset)
+	}
+}
