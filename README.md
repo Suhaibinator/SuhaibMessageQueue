@@ -32,7 +32,7 @@ To install SMQ, clone the repository and build the application using Go:
 
 ```bash
 git clone https://github.com/Suhaibinator/SuhaibMessageQueue.git
-cd smq
+cd SuhaibMessageQueue
 go build
 ```
 
