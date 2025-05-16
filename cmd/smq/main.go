@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/Suhaibinator/SuhaibMessageQueue/config"
-	"github.com/Suhaibinator/SuhaibMessageQueue/server"
+	"github.com/Suhaibinator/SuhaibMessageQueue/internal/server"
 )
 
 func init() {
@@ -27,6 +27,7 @@ func init() {
 		fmt.Fprintf(flag.CommandLine.Output(), "  %s: Path to server certificate file for mTLS\n", config.ENV_SERVER_CERT_FILE)
 		fmt.Fprintf(flag.CommandLine.Output(), "  %s: Path to server key file for mTLS\n", config.ENV_SERVER_KEY_FILE)
 		fmt.Fprintf(flag.CommandLine.Output(), "  %s: Path to CA certificate file for mTLS (server to verify client)\n", config.ENV_SERVER_CA_CERT_FILE)
+		fmt.Fprintf(flag.CommandLine.Output(), "  %s: Allow remote gRPC clients to perform write operations (default true)\n", config.ENV_ALLOW_REMOTE_WRITES)
 	}
 
 	// Check environment variables
@@ -60,6 +61,9 @@ func init() {
 	if serverCACertFile, exists := os.LookupEnv(config.ENV_SERVER_CA_CERT_FILE); exists {
 		config.ServerCACertFile = serverCACertFile
 	}
+	if allowWrites, exists := os.LookupEnv(config.ENV_ALLOW_REMOTE_WRITES); exists {
+		config.AllowRemoteWrites = allowWrites != "false"
+	}
 
 	// Check program arguments
 	// Note: Command-line flag values will override environment variable settings for the corresponding configuration options.
@@ -75,12 +79,14 @@ func init() {
 	flag.StringVar(&config.ServerKeyFile, "server-key", config.ServerKeyFile, "path to server key file for mTLS")
 	flag.StringVar(&config.ServerCACertFile, "server-ca-cert", config.ServerCACertFile, "path to CA certificate file for mTLS (server to verify client)")
 	serverEnableMTLSFlag := flag.Bool("server-enable-mtls", config.ServerEnableMTLS, "enable server-side mTLS authentication")
+	allowWritesFlag := flag.Bool("allow-remote-writes", config.AllowRemoteWrites, "allow remote gRPC clients to perform write operations")
 
 	flag.Parse()
 
 	// Update EnableMTLS values from flags
 	config.EnableMTLS = *clientEnableMTLSFlag       // For client
 	config.ServerEnableMTLS = *serverEnableMTLSFlag // For server
+	config.AllowRemoteWrites = *allowWritesFlag
 }
 
 func main() {

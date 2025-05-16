@@ -16,7 +16,7 @@ ENV CGO_ENABLED=1
 ENV GOOS=linux
 
 # Build the Go application
-RUN go build -o SuhaibMessageQueue
+RUN go build -o smq ./cmd/smq
 
 # Stage 2: Create the final image
 FROM alpine:latest
@@ -28,10 +28,10 @@ WORKDIR /app
 VOLUME /db
 
 # Copy the binary from the builder stage to the working directory
-COPY --from=builder /src/SuhaibMessageQueue .
+COPY --from=builder /src/smq .
 
 # Make the binary executable
-RUN chmod +x SuhaibMessageQueue
+RUN chmod +x smq
 
 # Specify the command to run when the container starts
-CMD ["./SuhaibMessageQueue"]
+CMD ["./smq"]

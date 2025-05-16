@@ -33,7 +33,7 @@ To install SMQ, clone the repository and build the application using Go:
 ```bash
 git clone https://github.com/Suhaibinator/SuhaibMessageQueue.git
 cd SuhaibMessageQueue
-go build
+go build ./cmd/smq
 ```
 
 ### Running SMQ
@@ -70,6 +70,7 @@ docker run suhaibinator/smq:latest-arm64
 - `--server-cert`: Path to the server's certificate file for mTLS.
 - `--server-key`: Path to the server's private key file for mTLS.
 - `--server-ca-cert`: Path to the CA certificate file for the server to verify clients.
+- `--allow-remote-writes`: Allow remote gRPC clients to modify data. Default: `true`.
 
 If command-line flags are provided, they take the highest priority and override any other settings.
 
@@ -85,6 +86,9 @@ If command-line flags are provided, they take the highest priority and override 
 - `SERVER_CERT_FILE`: Path to server certificate file.
 - `SERVER_KEY_FILE`: Path to server key file.
 - `SERVER_CA_CERT_FILE`: Path to CA certificate for server to verify clients.
+- `ALLOW_REMOTE_WRITES`: Allow remote gRPC clients to modify data (`true` or `false`).
+
+To embed SMQ without allowing external write operations, set `ALLOW_REMOTE_WRITES=false` or start the server with `--allow-remote-writes=false`.
 
 Environment variables take priority over default values but are overridden by command-line flags if they are set.
 
