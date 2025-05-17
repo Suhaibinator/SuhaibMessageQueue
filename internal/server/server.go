@@ -234,11 +234,7 @@ func NewServer(port, dbPath string, opts *ServerOptions) *Server {
 	grpcServer := grpc.NewServer(serverOpts...)
 	allowWrites := config.AllowRemoteWrites
 	if opts != nil {
-		if opts.AllowRemoteWrites {
-			allowWrites = true
-		} else {
-			allowWrites = false
-		}
+		allowWrites = opts.AllowRemoteWrites
 	}
 
 	srv := &Server{
