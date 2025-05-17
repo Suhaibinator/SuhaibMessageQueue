@@ -15,6 +15,8 @@ const (
 	ErrTopicIsEmptyMessage = "topic is empty"
 	// ErrDeletingTopic is returned when a topic cannot be deleted
 	ErrDeletingTopicMessage = "error deleting topic"
+	// ErrRemoteWritesDisabled is returned when remote writes are disabled
+	ErrRemoteWritesDisabledMessage = "remote writes disabled"
 )
 
 var (
@@ -30,4 +32,6 @@ var (
 	ErrTopicIsEmpty = errors.New(ErrTopicIsEmptyMessage)
 	// ErrDeletingTopic is returned when a topic cannot be deleted
 	ErrDeletingTopic = errors.New(ErrDeletingTopicMessage)
+	// ErrRemoteWritesDisabled is returned when remote write operations are not allowed
+	ErrRemoteWritesDisabled = errors.New(ErrRemoteWritesDisabledMessage)
 )

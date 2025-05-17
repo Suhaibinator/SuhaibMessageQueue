@@ -9,8 +9,8 @@ import (
 
 	"github.com/Suhaibinator/SuhaibMessageQueue/config"
 	"github.com/Suhaibinator/SuhaibMessageQueue/errors"
+	"github.com/Suhaibinator/SuhaibMessageQueue/internal/server/database"
 	pb "github.com/Suhaibinator/SuhaibMessageQueue/proto"
-	"github.com/Suhaibinator/SuhaibMessageQueue/server/database"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
@@ -238,9 +238,10 @@ func setupTest(t *testing.T) (*Server, pb.SuhaibMessageQueueClient, func()) {
 
 	// Create a server with the mock driver
 	s := &Server{
-		driver:     mockDriver,
-		grpcServer: grpc.NewServer(),
-		port:       "8097",
+		driver:            mockDriver,
+		grpcServer:        grpc.NewServer(),
+		port:              "8097",
+		allowRemoteWrites: true,
 	}
 
 	// Register the server

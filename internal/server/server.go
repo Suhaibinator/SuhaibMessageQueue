@@ -9,18 +9,20 @@ import (
 	"time"
 
 	"github.com/Suhaibinator/SuhaibMessageQueue/config"
+	smqerrors "github.com/Suhaibinator/SuhaibMessageQueue/errors"
+	"github.com/Suhaibinator/SuhaibMessageQueue/internal/server/database"
 	pb "github.com/Suhaibinator/SuhaibMessageQueue/proto"
-	"github.com/Suhaibinator/SuhaibMessageQueue/server/database"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
 
 // ServerOptions allows for programmatic configuration of the server.
 type ServerOptions struct {
-	EnableMTLS     bool
-	TLSConfig      *tls.Config
-	MaxRecvMsgSize int
-	MaxSendMsgSize int
+	EnableMTLS        bool
+	TLSConfig         *tls.Config
+	MaxRecvMsgSize    int
+	MaxSendMsgSize    int
+	AllowRemoteWrites bool
 }
 
 type Server struct {
@@ -28,10 +30,14 @@ type Server struct {
 	driver     database.DBDriverInterface
 	grpcServer *grpc.Server
 
-	port string
+	port              string
+	allowRemoteWrites bool
 }
 
 func (s *Server) Produce(ctx context.Context, pr *pb.ProduceRequest) (*pb.ProduceResponse, error) {
+	if !s.allowRemoteWrites {
+		return nil, smqerrors.ErrRemoteWritesDisabled
+	}
 	err := s.driver.AddMessageToTopic(pr.Topic, pr.Message)
 	if err != nil {
 		return nil, err
@@ -40,6 +46,9 @@ func (s *Server) Produce(ctx context.Context, pr *pb.ProduceRequest) (*pb.Produc
 }
 
 func (s *Server) StreamProduce(sp pb.SuhaibMessageQueue_StreamProduceServer) error {
+	if !s.allowRemoteWrites {
+		return smqerrors.ErrRemoteWritesDisabled
+	}
 	for {
 		// Receive a message from the client
 		message, err := sp.Recv()
@@ -120,6 +129,9 @@ func (s *Server) streamMessages(topic string, cs pb.SuhaibMessageQueue_StreamCon
 }
 
 func (s *Server) CreateTopic(ctx context.Context, tr *pb.CreateTopicRequest) (*pb.CreateTopicResponse, error) {
+	if !s.allowRemoteWrites {
+		return nil, smqerrors.ErrRemoteWritesDisabled
+	}
 	err := s.driver.CreateTopic(tr.Topic)
 	if err != nil {
 		return nil, err
@@ -220,13 +232,19 @@ func NewServer(port, dbPath string, opts *ServerOptions) *Server {
 	}
 
 	grpcServer := grpc.NewServer(serverOpts...)
-	pb.RegisterSuhaibMessageQueueServer(grpcServer, &Server{driver: driver})
-
-	return &Server{
-		driver:     driver,
-		grpcServer: grpcServer,
-		port:       port,
+	allowWrites := config.AllowRemoteWrites
+	if opts != nil {
+		allowWrites = opts.AllowRemoteWrites
 	}
+
+	srv := &Server{
+		driver:            driver,
+		grpcServer:        grpcServer,
+		port:              port,
+		allowRemoteWrites: allowWrites,
+	}
+	pb.RegisterSuhaibMessageQueueServer(grpcServer, srv)
+	return srv
 }
 
 func (s *Server) Start() {
@@ -241,6 +259,9 @@ func (s *Server) Start() {
 }
 
 func (s *Server) DeleteUntilOffset(ctx context.Context, dr *pb.DeleteUntilOffsetRequest) (*pb.DeleteUntilOffsetResponse, error) {
+	if !s.allowRemoteWrites {
+		return nil, smqerrors.ErrRemoteWritesDisabled
+	}
 	err := s.driver.DeleteMessagesUntilOffset(dr.Topic, dr.Offset)
 	if err != nil {
 		return nil, err

@@ -13,6 +13,9 @@ const (
 	ENV_SERVER_CERT_FILE    = "SERVER_CERT_FILE"
 	ENV_SERVER_KEY_FILE     = "SERVER_KEY_FILE"
 	ENV_SERVER_CA_CERT_FILE = "SERVER_CA_CERT_FILE"
+
+	// Control whether remote gRPC clients can modify data
+	ENV_ALLOW_REMOTE_WRITES = "ALLOW_REMOTE_WRITES"
 )
 
 var (
@@ -31,4 +34,7 @@ var (
 	ServerCertFile   = ""    // Path to server's certificate file
 	ServerKeyFile    = ""    // Path to server's private key file
 	ServerCACertFile = ""    // Path to CA certificate file for verifying client certificates
+
+	// AllowRemoteWrites controls whether external gRPC callers can perform write operations
+	AllowRemoteWrites = true
 )
