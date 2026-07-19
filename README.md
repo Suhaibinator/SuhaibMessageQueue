@@ -4,6 +4,8 @@ Suhaib Message Queue (SMQ) is a small persistent message broker written in Go. I
 topics in SQLite and exposes publish, consume, streaming, retention, and bulk-retrieval
 operations over gRPC. Go and Python clients are maintained in this repository.
 
+Upgrading an existing integration? See the [client migration guide](MIGRATION.md).
+
 ## Requirements
 
 - Go 1.25 or newer. The module pins the development toolchain in `go.mod`.
