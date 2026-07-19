@@ -1,302 +1,150 @@
-# Suhaib Message Queue (SMQ)
+# Suhaib Message Queue
 
-Suhaib Message Queue (SMQ) is an ultra-lightweight, efficient messaging queue system developed in Go. It is designed for high adaptability and resilience, perfect for integrating with Go applications, deploying in Docker containers, or operating as a standalone service.
+Suhaib Message Queue (SMQ) is a small persistent message broker written in Go. It stores
+topics in SQLite and exposes publish, consume, streaming, retention, and bulk-retrieval
+operations over gRPC. Go and Python clients are maintained in this repository.
 
-## Features
+## Requirements
 
-- **Lightweight and Efficient**: Built specifically in Go to ensure minimal overhead.
-- **Flexible Deployment Options**: Run as a Docker container, integrate within Go applications, or operate as a standalone executable.
-- **Reliable Persistence**: Uses SQLite to store messages on disk with a write-ahead log and rollback journal, ensuring data durability across restarts and failures.
-- **gRPC Integration**: Utilizes gRPC for efficient, scalable communication between distributed services.
-- **Client Packages**: Includes both a Go client package and a Python client package (pysmq on PyPI) to facilitate easy integration and communication across different languages.
+- Go 1.25 or newer. The module pins the development toolchain in `go.mod`.
+- A C compiler, because `github.com/mattn/go-sqlite3` uses CGO.
+- Docker, optionally.
+- Python 3.9 or newer when developing the Python client.
 
-## Why Choose SMQ Over Apache Kafka or RabbitMQ?
-SMQ is particularly advantageous in environments where simplicity, minimal overhead, and integration ease are paramount over the comprehensive feature sets of larger systems like Apache Kafka or RabbitMQ. It is especially well-suited for:
-
-- **Small to Medium-Sized Applications**: Ideal for applications where the overhead of larger message brokers is impractical.
-- **Microservices Architectures**: Especially those developed in Go, benefiting from native integration and performance optimization.
-- **Rapid Prototyping**: Offers quick setup and easy configuration, making it suitable for development environments and testing new ideas.
-- **IoT and Edge Computing**: Its minimalistic design fits well in resource-constrained environments such as IoT devices and edge computing scenarios.
-
-
-## Getting Started
-
-### Prerequisites
-
-- Go 1.22 or later
-- Docker (optional for Docker deployment)
-
-### Installing
-
-To install SMQ, clone the repository and build the application using Go:
+## Run the server
 
 ```bash
-git clone https://github.com/Suhaibinator/SuhaibMessageQueue.git
-cd SuhaibMessageQueue
-go build ./cmd/smq
+go run ./cmd/smq
 ```
 
-### Running SMQ
+The server listens on port `8097` and writes to `./dbtest.db` by default. Command-line
+flags override environment variables.
 
-To run SMQ, execute the built binary:
+| Flag | Environment | Default | Purpose |
+| --- | --- | --- | --- |
+| `--dbpath` | `DB_PATH` | `./dbtest.db` | SQLite database path |
+| `--port` | `PORT` | `8097` | gRPC port |
+| `--allow-remote-writes` | `ALLOW_REMOTE_WRITES` | `true` | Permit create, publish, and delete operations |
+| `--server-enable-mtls` | `SERVER_ENABLE_MTLS` | `false` | Require mutual TLS |
+| `--server-cert` | `SERVER_CERT_FILE` | — | Server certificate |
+| `--server-key` | `SERVER_KEY_FILE` | — | Server private key |
+| `--server-ca-cert` | `SERVER_CA_CERT_FILE` | — | CA used to verify clients |
+| `--max-recv-message-size` | — | 1 GiB | Maximum received gRPC message size |
+| `--max-send-message-size` | — | 1 GiB | Maximum sent gRPC message size |
+
+If mTLS is enabled, all three certificate paths are required and startup fails if any
+credential cannot be loaded. The server also implements the standard gRPC health service.
+Topic names must contain 1–35 ASCII letters, digits, or underscores.
+
+## Docker
+
+Build and run locally:
 
 ```bash
-./smq
+docker build -t smq .
+docker run --rm -p 8097:8097 -v smq-data:/data smq
 ```
 
-SMQ will start running on port 8097 by default. However, you can customize the behavior of SMQ using command-line flags and environment variables. The priority for these settings is as follows: command-line flags > environment variables > default values.
-
-### Using Docker
+Tagged releases publish a single `linux/amd64` and `linux/arm64` manifest:
 
 ```bash
-docker run suhaibinator/smq:latest-amd64
+docker run --rm -p 8097:8097 -v smq-data:/data ghcr.io/suhaibinator/smq:latest
 ```
 
-or
+The image runs as a non-root user and stores its database at `/data/smq.db`.
 
-```bash
-docker run suhaibinator/smq:latest-arm64
-```
-
-### Command-Line Flags
-
-- `--dbpath`: Specifies the path to the SQLite database file. Default: `./dbtest.db`.
-- `--port`: Specifies the port to listen on. Default: `8097`.
-- `--enable-mtls`: Enables client-side mTLS authentication. (boolean, e.g., `--enable-mtls=true`)
-- `--client-cert`: Path to the client's certificate file for mTLS.
-- `--client-key`: Path to the client's private key file for mTLS.
-- `--ca-cert`: Path to the CA certificate file for the client to verify the server.
-- `--server-enable-mtls`: Enables server-side mTLS authentication. (boolean, e.g., `--server-enable-mtls=true`)
-- `--server-cert`: Path to the server's certificate file for mTLS.
-- `--server-key`: Path to the server's private key file for mTLS.
-- `--server-ca-cert`: Path to the CA certificate file for the server to verify clients.
-- `--allow-remote-writes`: Allow remote gRPC clients to modify data. Default: `true`.
-
-If command-line flags are provided, they take the highest priority and override any other settings.
-
-### Environment Variables
-
-- `DB_PATH`: Overrides the default path to the SQLite database file (unless `--dbpath` is used).
-- `PORT`: Overrides the default port to listen on (unless `--port` is used).
-- `ENABLE_MTLS`: Enables client-side mTLS (`true` or `false`).
-- `CLIENT_CERT`: Path to client certificate file.
-- `CLIENT_KEY`: Path to client key file.
-- `CA_CERT`: Path to CA certificate for client to verify server.
-- `SERVER_ENABLE_MTLS`: Enables server-side mTLS (`true` or `false`).
-- `SERVER_CERT_FILE`: Path to server certificate file.
-- `SERVER_KEY_FILE`: Path to server key file.
-- `SERVER_CA_CERT_FILE`: Path to CA certificate for server to verify clients.
-- `ALLOW_REMOTE_WRITES`: Allow remote gRPC clients to modify data (`true` or `false`).
-
-Environment variables take priority over default values but are overridden by command-line flags if they are set.
-
-To use an environment variable, export it before running the SMQ binary. For example:
-
-```bash
-export DB_PATH=/path/to/your/database.db
-export PORT=9000
-./smq
-```
-
-
-## Usage
-
-### mTLS Configuration
-
-SMQ supports mutual TLS (mTLS) for securing communication between the client and server. You can configure mTLS for the client, the server, or both.
-
-**Client-Side mTLS:**
-When client-side mTLS is enabled, the client will present its certificate to the server, and the server will verify it. The client will also verify the server's certificate using the provided CA certificate.
-- Enable with `ENABLE_MTLS=true` (env) or `--enable-mtls` (flag).
-- Provide `CLIENT_CERT`, `CLIENT_KEY`, and `CA_CERT` (env) or `--client-cert`, `--client-key`, `--ca-cert` (flags).
-
-**Server-Side mTLS:**
-When server-side mTLS is enabled, the server will require clients to present a certificate and will verify it against the server's CA certificate. The server will also present its own certificate to clients.
-- Enable with `SERVER_ENABLE_MTLS=true` (env) or `--server-enable-mtls` (flag).
-- Provide `SERVER_CERT_FILE`, `SERVER_KEY_FILE`, and `SERVER_CA_CERT_FILE` (env) or `--server-cert`, `--server-key`, `--server-ca-cert` (flags).
-
-**Generating Certificates (Example using OpenSSL):**
-
-You'll typically need a Certificate Authority (CA), a server certificate/key signed by the CA, and a client certificate/key signed by the CA.
-
-1.  **Create CA:**
-    ```bash
-    openssl genrsa -out ca.key 4096
-    openssl req -new -x509 -days 365 -key ca.key -out ca.crt -subj "/CN=My SMQ CA"
-    ```
-
-2.  **Create Server Certificate:**
-    ```bash
-    openssl genrsa -out server.key 4096
-    openssl req -new -key server.key -out server.csr -subj "/CN=localhost" # Use your server's hostname
-    openssl x509 -req -days 365 -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt
-    ```
-
-3.  **Create Client Certificate:**
-    ```bash
-    openssl genrsa -out client.key 4096
-    openssl req -new -key client.key -out client.csr -subj "/CN=smqclient"
-    openssl x509 -req -days 365 -in client.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out client.crt
-    ```
-
-Place these files in appropriate locations and configure SMQ using the flags or environment variables described above. For example, to run the server with mTLS:
-```bash
-export SERVER_ENABLE_MTLS=true
-export SERVER_CERT_FILE=./server.crt
-export SERVER_KEY_FILE=./server.key
-export SERVER_CA_CERT_FILE=./ca.crt # This CA will be used to verify client certs
-./smq
-```
-And for the client (in your client application's configuration):
-```go
-// In your client application
-config.EnableMTLS = true
-config.ClientCert = "./client.crt"
-config.ClientKey = "./client.key"
-config.CACert = "./ca.crt" // This CA will be used to verify the server cert
-// ... then initialize your client
-```
-
-Here's an example of how to use the SMQ client package to create a topic, produce a message, and consume messages:
+## Go client
 
 ```go
 package main
 
 import (
-    "github.com/yourusername/smq/client"
-    "log"
-    "time"
+	"log"
+
+	"github.com/Suhaibinator/SuhaibMessageQueue/client"
 )
 
 func main() {
-    // Create a new client
-    smqClient, err := client.NewClient("localhost", "8097")
-    if err != nil {
-        log.Fatalf("Failed to create client: %v", err)
-    }
-    defer smqClient.Close()
+	c, err := client.NewClient("localhost", "8097", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer c.Close()
 
-    // Create a topic
-    topicName := "exampleTopic"
-    if err := smqClient.CreateTopic(topicName); err != nil {
-        log.Fatalf("Failed to create topic: %v", err)
-    }
-
-    // Produce a message to the topic
-    message := []byte("Hello, SMQ!")
-    if err := smqClient.Produce(topicName, message); err != nil {
-        log.Fatalf("Failed to send message: %v", err)
-    }
-
-    // Consume the earliest message from the topic
-    msg, offset, err := smqClient.ConsumeEarliest(topicName)
-    if err != nil {
-        log.Fatalf("Failed to consume message: %v", err)
-    }
-    log.Printf("Received message at offset %d: %s", offset, string(msg))
+	if err := c.CreateTopic("events"); err != nil {
+		log.Fatal(err)
+	}
+	if err := c.Produce("events", []byte("hello")); err != nil {
+		log.Fatal(err)
+	}
 }
 ```
 
-## Python Client Usage
+For explicit timeouts, message limits, or mTLS, use `client.New(client.Options{...})`.
+The old `config.ClientTLSConfig` name remains a deprecated alias for compatibility.
 
-SMQ also provides a Python client package (`pysmq`) available on PyPI, which allows Python applications to interact with SMQ servers.
+## Python client
 
-### Installing the Python Client
-
-Install the Python client using pip:
+Install the published client:
 
 ```bash
-pip install pysmq
+python -m pip install pysmq
 ```
 
-### Basic Usage Examples
-
-#### Publishing Messages
-
-Here's an example of how to publish messages to an SMQ server using the Python client:
-
 ```python
-import json
-import time
-from pysmq.client import Client
+from pysmq import Client
 
-# Create a client
 with Client(host="localhost", port=8097) as client:
-    # Connect to the server
     client.connect()
-    
-    # Create a topic
-    topic = "example-topic"
-    client.create_topic(topic)
-    
-    # Publish a message
-    message = {
-        "id": 1,
-        "timestamp": time.time(),
-        "content": "Hello from Python!",
-    }
-    message_bytes = json.dumps(message).encode('utf-8')
-    
-    # Produce the message
-    offset = client.produce(topic, message_bytes)
-    print(f"Message published at offset {offset}")
+    client.create_topic("events")
+    offset = client.produce("events", b"hello")
+    print(offset)
 ```
 
-#### Consuming Messages
+See [`python/README.md`](python/README.md) for the complete Python API.
 
-Here's an example of how to consume messages:
+## Development
 
-```python
-import json
-from pysmq.client import Client
+Common operations are exposed through the root Makefile:
 
-# Create a client
-with Client(host="localhost", port=8097) as client:
-    # Connect to the server
-    client.connect()
-    
-    topic = "example-topic"
-    
-    # Consume the latest message
-    message_bytes, offset = client.consume_latest(topic)
-    
-    # Process the message
-    message = json.loads(message_bytes.decode('utf-8'))
-    print(f"Received message at offset {offset}:")
-    print(f"Content: {message.get('content')}")
-    
-    # Stream consumption example
-    print("Starting stream consumption...")
-    for message_bytes, offset in client.stream_consume(topic, start_offset=0):
-        message = json.loads(message_bytes.decode('utf-8'))
-        print(f"Received message at offset {offset}: {message.get('content')}")
-        # Break condition (example: stop after processing 10 messages)
-        if offset >= 10:
-            break
+```bash
+make build
+make test
+make generate PYTHON_BIN=python3
+make proto-check
 ```
 
-#### Secure Connection with mTLS
+Install Python development dependencies before running Python checks:
 
-The Python client also supports secure connections using mTLS:
-
-```python
-from pysmq.client import Client
-from pysmq.config import ClientTLSConfig
-
-# Create a TLS configuration
-tls_config = ClientTLSConfig(
-    cert_file="/path/to/client.crt",
-    key_file="/path/to/client.key",
-    ca_file="/path/to/ca.crt",
-)
-
-# Create a secure client
-with Client(host="localhost", port=8097, tls_config=tls_config) as client:
-    # Connect securely
-    client.connect()
-    print("Connected securely!")
-    
-    # Now you can use the client as in the previous examples
+```bash
+python -m pip install -e './python[dev]'
+make python-test PYTHON_BIN=python
+make python-build PYTHON_BIN=python
 ```
 
-For more detailed examples, refer to the Python client documentation and example files in the `pysmq/examples` directory.
+Protobuf generation requires `buf`, `protoc-gen-go`, `protoc-gen-go-grpc`, and
+`grpcio-tools`. The schema is the source of truth at `api/smq/v1/smq.proto`. Generated
+Go and Python files are committed, and CI rejects generation drift and incompatible
+wire/JSON schema changes.
+
+## Repository layout
+
+```text
+api/smq/v1/             Versioned protobuf API and generated Go bindings
+client/                 Public Go client
+cmd/smq/                Server executable
+internal/config/        Server process configuration
+internal/queue/         Storage contract and domain errors
+internal/server/        gRPC transport
+internal/store/sqlite/  SQLite implementation
+python/                 Independently packaged Python distribution
+proto/                  Deprecated Go v1 compatibility aliases
+examples/               Go and Python examples
+```
+
+Server and container releases use `vX.Y.Z` tags. Python releases use
+`pysmq-vX.Y.Z` tags so the two artifacts can evolve independently.
+
+## License
+
+MIT. See [`LICENSE`](LICENSE).

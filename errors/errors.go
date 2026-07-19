@@ -1,37 +1,40 @@
+// Package errors preserves the v1 public error values.
+//
+// Deprecated: new server code uses the internal queue domain errors.
 package errors
 
-import "errors"
+import "github.com/Suhaibinator/SuhaibMessageQueue/internal/queue"
 
 const (
 	// ErrTopicNotFound is returned when a topic is not found in the database
-	ErrTopicNotFoundMessage = "topic not found"
+	ErrTopicNotFoundMessage = queue.ErrTopicNotFoundMessage
 	// ErrTopicAlreadyExists is returned when a topic already exists in the database
-	ErrTopicAlreadyExistsMessage = "topic already exists"
+	ErrTopicAlreadyExistsMessage = queue.ErrTopicAlreadyExistsMessage
 	// ErrOffsetGreaterThanLatest is returned when an offset is greater than the latest offset in the topic
-	ErrOffsetGreaterThanLatestMessage = "offset is greater than the latest offset"
+	ErrOffsetGreaterThanLatestMessage = queue.ErrOffsetGreaterThanLatestMessage
 	// ErrNotMessageAtOffset is returned when there is no message at the given offset
-	ErrNotMessageAtOffsetMessage = "no message at offset"
+	ErrNotMessageAtOffsetMessage = queue.ErrNotMessageAtOffsetMessage
 	// ErrTopicIsEmpty is returned when a topic is empty
-	ErrTopicIsEmptyMessage = "topic is empty"
+	ErrTopicIsEmptyMessage = queue.ErrTopicIsEmptyMessage
 	// ErrDeletingTopic is returned when a topic cannot be deleted
-	ErrDeletingTopicMessage = "error deleting topic"
+	ErrDeletingTopicMessage = queue.ErrDeletingTopicMessage
 	// ErrRemoteWritesDisabled is returned when remote writes are disabled
-	ErrRemoteWritesDisabledMessage = "remote writes disabled"
+	ErrRemoteWritesDisabledMessage = queue.ErrRemoteWritesDisabledMessage
 )
 
 var (
 	// ErrTopicNotFound is returned when a topic is not found in the database
-	ErrTopicNotFound = errors.New(ErrTopicNotFoundMessage)
+	ErrTopicNotFound = queue.ErrTopicNotFound
 	// ErrTopicAlreadyExists is returned when a topic already exists in the database
-	ErrTopicAlreadyExists = errors.New(ErrTopicAlreadyExistsMessage)
+	ErrTopicAlreadyExists = queue.ErrTopicAlreadyExists
 	// ErrOffsetGreaterThanLatest is returned when an offset is greater than the latest offset in the topic
-	ErrOffsetGreaterThanLatest = errors.New(ErrOffsetGreaterThanLatestMessage)
+	ErrOffsetGreaterThanLatest = queue.ErrOffsetGreaterThanLatest
 	// ErrNotMessageAtOffset is returned when there is no message at the given offset
-	ErrNotMessageAtOffset = errors.New(ErrNotMessageAtOffsetMessage)
+	ErrNotMessageAtOffset = queue.ErrNotMessageAtOffset
 	// ErrTopicIsEmpty is returned when a topic is empty
-	ErrTopicIsEmpty = errors.New(ErrTopicIsEmptyMessage)
+	ErrTopicIsEmpty = queue.ErrTopicIsEmpty
 	// ErrDeletingTopic is returned when a topic cannot be deleted
-	ErrDeletingTopic = errors.New(ErrDeletingTopicMessage)
+	ErrDeletingTopic = queue.ErrDeletingTopic
 	// ErrRemoteWritesDisabled is returned when remote write operations are not allowed
-	ErrRemoteWritesDisabled = errors.New(ErrRemoteWritesDisabledMessage)
+	ErrRemoteWritesDisabled = queue.ErrRemoteWritesDisabled
 )
