@@ -7,17 +7,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Suhaibinator/SuhaibMessageQueue/config"
 	"github.com/Suhaibinator/SuhaibMessageQueue/errors"
-	"github.com/Suhaibinator/SuhaibMessageQueue/internal/server/database"
+	"github.com/Suhaibinator/SuhaibMessageQueue/internal/queue"
 	pb "github.com/Suhaibinator/SuhaibMessageQueue/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/test/bufconn"
 )
 
-// Ensure MockDBDriver implements database.DBDriverInterface
-var _ database.DBDriverInterface = (*MockDBDriver)(nil)
+// Ensure MockDBDriver implements queue.Store.
+var _ queue.Store = (*MockDBDriver)(nil)
 
 // MockDBDriver is a mock implementation of the database driver for testing
 type MockDBDriver struct {
@@ -32,7 +32,7 @@ type MockDBDriver struct {
 	getEarliestMessageFunc              func(string) ([]byte, int64, error)
 	getLatestMessageFunc                func(string) ([]byte, int64, error)
 	deleteMessagesUntilOffsetFunc       func(string, int64) error
-	getMessagesAfterOffsetWithLimitFunc func(topic string, startOffset int64, limit int) ([]database.Message, int64, error)
+	getMessagesAfterOffsetWithLimitFunc func(topic string, startOffset int64, limit int) ([]queue.Message, int64, error)
 }
 
 func NewMockDBDriver() *MockDBDriver {
@@ -66,6 +66,13 @@ func (m *MockDBDriver) AddMessageToTopic(topic string, data []byte) error {
 	m.latestOffsets[topic]++
 	m.messages[topic][m.latestOffsets[topic]] = data
 	return nil
+}
+
+func (m *MockDBDriver) AddMessage(topic string, data []byte) (int64, error) {
+	if err := m.AddMessageToTopic(topic, data); err != nil {
+		return 0, err
+	}
+	return m.latestOffsets[topic], nil
 }
 
 func (m *MockDBDriver) GetMessageAtOffset(topic string, offset int64) ([]byte, error) {
@@ -165,15 +172,11 @@ func (m *MockDBDriver) DeleteMessagesUntilOffset(topic string, offset int64) err
 	return nil
 }
 
-func (m *MockDBDriver) Close() {
-	// No-op for mock
+func (m *MockDBDriver) Close() error {
+	return nil
 }
 
-func (m *MockDBDriver) Debug() {
-	// No-op for mock
-}
-
-func (m *MockDBDriver) GetMessagesAfterOffsetWithLimit(topic string, startOffset int64, limit int) ([]database.Message, int64, error) {
+func (m *MockDBDriver) GetMessagesAfterOffsetWithLimit(topic string, startOffset int64, limit int) ([]queue.Message, int64, error) {
 	if m.getMessagesAfterOffsetWithLimitFunc != nil {
 		return m.getMessagesAfterOffsetWithLimitFunc(topic, startOffset, limit)
 	}
@@ -182,7 +185,7 @@ func (m *MockDBDriver) GetMessagesAfterOffsetWithLimit(topic string, startOffset
 		return nil, -1, errors.ErrTopicNotFound
 	}
 
-	var resultMessages []database.Message
+	var resultMessages []queue.Message
 	var lastOffsetSeen int64 = -1
 	count := 0
 
@@ -207,7 +210,7 @@ func (m *MockDBDriver) GetMessagesAfterOffsetWithLimit(topic string, startOffset
 		if currentOffset > startOffset {
 			if limit <= 0 || count < limit {
 				msgData := m.messages[topic][currentOffset]
-				resultMessages = append(resultMessages, database.Message{Message: msgData, Offset: currentOffset})
+				resultMessages = append(resultMessages, queue.Message{Message: msgData, Offset: currentOffset})
 				lastOffsetSeen = currentOffset
 				count++
 			} else {
@@ -240,6 +243,7 @@ func setupTest(t *testing.T) (*Server, pb.SuhaibMessageQueueClient, func()) {
 	s := &Server{
 		driver:            mockDriver,
 		grpcServer:        grpc.NewServer(),
+		health:            health.NewServer(),
 		port:              "8097",
 		allowRemoteWrites: true,
 	}
@@ -327,9 +331,12 @@ func TestProduce(t *testing.T) {
 
 	// Test producing a message
 	message := []byte("test message")
-	_, err = client.Produce(context.Background(), &pb.ProduceRequest{Topic: "test_topic", Message: message})
+	produceResponse, err := client.Produce(context.Background(), &pb.ProduceRequest{Topic: "test_topic", Message: message})
 	if err != nil {
 		t.Fatalf("Failed to produce message: %v", err)
+	}
+	if produceResponse.Offset != 1 {
+		t.Errorf("Expected produced offset to be 1, got %d", produceResponse.Offset)
 	}
 
 	// Verify message was added
@@ -540,7 +547,10 @@ func TestDeleteUntilOffset(t *testing.T) {
 
 func TestNewServer(t *testing.T) {
 	// Test creating a new server
-	s := NewServer("8097", ":memory:", nil)
+	s, err := NewServer("8097", ":memory:", nil)
+	if err != nil {
+		t.Fatalf("NewServer() error = %v", err)
+	}
 
 	// Verify server was created successfully
 	if s == nil {
@@ -599,7 +609,7 @@ func TestStreamConsume(t *testing.T) {
 		if err != nil {
 			break
 		}
-		if response.Offset == config.SPECIAL_OFFSET_HEARTBEAT {
+		if response.Offset == queue.HeartbeatOffset {
 			continue
 		}
 		receivedMessages = append(receivedMessages, string(response.Message))
@@ -645,9 +655,12 @@ func TestStreamProducer(t *testing.T) {
 	}
 
 	// Close the stream
-	_, err = stream.CloseAndRecv()
+	produceResponse, err := stream.CloseAndRecv()
 	if err != nil {
 		t.Fatalf("Failed to close stream: %v", err)
+	}
+	if produceResponse.Offset != int64(len(messages)) {
+		t.Errorf("Expected last produced offset to be %d, got %d", len(messages), produceResponse.Offset)
 	}
 
 	// Verify messages were added

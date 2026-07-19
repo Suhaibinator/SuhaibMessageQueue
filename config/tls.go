@@ -5,14 +5,14 @@ import (
 	"crypto/x509"
 	"log"
 	"os"
+
+	"github.com/Suhaibinator/SuhaibMessageQueue/client"
 )
 
 // ClientTLSConfig holds the paths to the TLS certificate files for client mTLS.
-type ClientTLSConfig struct {
-	CertFile string // Path to client's certificate file (PEM format)
-	KeyFile  string // Path to client's private key file (PEM format)
-	CAFile   string // Path to CA's certificate file (PEM format) to verify the server
-}
+// ClientTLSConfig is retained as a compatibility alias.
+// Deprecated: use client.TLSConfig.
+type ClientTLSConfig = client.TLSConfig
 
 // GetClientTLSConfig returns a ClientTLSConfig based on the current configuration
 // If EnableMTLS is false or if any of the required certificate paths are missing,

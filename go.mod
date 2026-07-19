@@ -1,18 +1,18 @@
 module github.com/Suhaibinator/SuhaibMessageQueue
 
-go 1.23.0
+go 1.25.0
 
-toolchain go1.24.0
+toolchain go1.26.5
 
 require (
-	github.com/mattn/go-sqlite3 v1.14.28
-	google.golang.org/grpc v1.72.1
-	google.golang.org/protobuf v1.36.6
+	github.com/mattn/go-sqlite3 v1.14.48
+	google.golang.org/grpc v1.82.1
+	google.golang.org/protobuf v1.36.11
 )
 
 require (
-	golang.org/x/net v0.40.0 // indirect
-	golang.org/x/sys v0.33.0 // indirect
-	golang.org/x/text v0.25.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250512202823-5a2f75b736a9 // indirect
+	golang.org/x/net v0.57.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/text v0.40.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260715232425-e75dac1f907d // indirect
 )
