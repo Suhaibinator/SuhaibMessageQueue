@@ -99,7 +99,7 @@ jobs:
           python -m pip install grpcio-tools==1.71.0 protobuf==5.29.4
       - run: buf lint
       - name: Check schema compatibility
-        run: buf breaking --against '.git#branch=main'
+        run: buf breaking --against '.git#branch=origin/main'
       - name: Check generated files
         run: |
           make generate PYTHON_BIN=python
