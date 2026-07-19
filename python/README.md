@@ -2,6 +2,9 @@
 
 This package provides a Python client for interacting with [SuhaibMessageQueue](https://github.com/Suhaibinator/SuhaibMessageQueue), a simple and efficient message queue service.
 
+For upgrades from the previous repository layout, see the
+[client migration guide](../MIGRATION.md).
+
 ## Installation
 
 ```bash
