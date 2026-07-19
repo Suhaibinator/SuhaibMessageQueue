@@ -22,7 +22,7 @@ lint:
 
 proto-check:
 	buf lint
-	buf breaking --against '.git#branch=main'
+	buf breaking --against '.git#branch=origin/main'
 
 test:
 	go test -race -shuffle=on ./...
