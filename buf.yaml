@@ -1,0 +1,19 @@
+version: v2
+modules:
+  - path: api/smq/v1
+lint:
+  use:
+    - STANDARD
+  except:
+    # These names are part of the existing v1 wire contract. Renaming them
+    # would be a breaking change, so v1 keeps them while new schemas follow
+    # Buf's standard naming rules.
+    - PACKAGE_DIRECTORY_MATCH
+    - PACKAGE_VERSION_SUFFIX
+    - RPC_REQUEST_RESPONSE_UNIQUE
+    - RPC_REQUEST_STANDARD_NAME
+    - RPC_RESPONSE_STANDARD_NAME
+    - SERVICE_SUFFIX
+breaking:
+  use:
+    - WIRE_JSON

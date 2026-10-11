@@ -1,37 +1,33 @@
+# syntax=docker/dockerfile:1.7
 
-# Stage 1: Build the Go binary
-FROM golang:1.23-alpine AS builder
+ARG GO_VERSION=1.26.5
+ARG ALPINE_VERSION=3.23
 
-# Install git, gcc, and other dependencies required for Go modules and CGO
-RUN apk add --no-cache git gcc musl-dev sqlite-dev curl make
+FROM golang:${GO_VERSION}-alpine${ALPINE_VERSION} AS builder
 
-# Set the working directory inside the builder container
+RUN apk add --no-cache gcc musl-dev
 WORKDIR /src
 
-# Copy the Go source code to the builder container
+COPY go.mod go.sum ./
+RUN --mount=type=cache,target=/go/pkg/mod go mod download
+
 COPY . .
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=1 go build -trimpath -ldflags="-s -w" -o /out/smq ./cmd/smq
 
-# Set environment variables for cross-compilation
-ENV CGO_ENABLED=1
-ENV GOOS=linux
+FROM alpine:${ALPINE_VERSION}
 
-# Build the Go application
-RUN go build -o SuhaibMessageQueue
+RUN apk add --no-cache ca-certificates \
+    && addgroup -S smq \
+    && adduser -S -G smq -h /data smq \
+    && install -d -o smq -g smq /data
 
-# Stage 2: Create the final image
-FROM alpine:latest
+COPY --from=builder /out/smq /usr/local/bin/smq
 
-# Set the working directory in the container
-WORKDIR /app
+USER smq
+WORKDIR /data
+VOLUME ["/data"]
+EXPOSE 8097
 
-# Create a directory for the database
-VOLUME /db
-
-# Copy the binary from the builder stage to the working directory
-COPY --from=builder /src/SuhaibMessageQueue .
-
-# Make the binary executable
-RUN chmod +x SuhaibMessageQueue
-
-# Specify the command to run when the container starts
-CMD ["./SuhaibMessageQueue"]
+ENTRYPOINT ["/usr/local/bin/smq"]
+CMD ["--dbpath=/data/smq.db"]
