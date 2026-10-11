@@ -11,6 +11,7 @@ const (
 	ErrDeletingTopicMessage                 = "error deleting topic"
 	ErrRemoteWritesDisabledMessage          = "remote writes disabled"
 	ErrInvalidTopicMessage                  = "invalid topic"
+	ErrStoreClosedMessage                   = "store closed"
 	HeartbeatOffset                   int64 = -1
 )
 
@@ -23,4 +24,5 @@ var (
 	ErrDeletingTopic           = errors.New(ErrDeletingTopicMessage)
 	ErrRemoteWritesDisabled    = errors.New(ErrRemoteWritesDisabledMessage)
 	ErrInvalidTopic            = errors.New(ErrInvalidTopicMessage)
+	ErrStoreClosed             = errors.New(ErrStoreClosedMessage)
 )

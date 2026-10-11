@@ -1,20 +1,24 @@
 package sqlite
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
 	"github.com/Suhaibinator/SuhaibMessageQueue/internal/queue"
 )
 
+// Topic holds the prepared statements for one topic table. Every operation
+// runs under the driver's dbMux: writes take the write lock, so offsets are
+// assigned and committed in order, and reads share the read lock.
 type Topic struct {
-	maxOffset                     int64
+	maxOffset                     int64 // guarded by dbMux
 	name                          string
 	db                            *sql.DB
 	dbMux                         *sync.RWMutex
+	closed                        bool // guarded by dbMux
 	getLatestOffsetStmt           *sql.Stmt
 	getEarliestOffsetStmt         *sql.Stmt
 	getLatestMessageStmt          *sql.Stmt
@@ -22,78 +26,49 @@ type Topic struct {
 	getMessageAtOffsetStmt        *sql.Stmt
 	deleteMessagesUntilOffsetStmt *sql.Stmt
 	addMessageStmt                *sql.Stmt
-	messagesChannel               chan []byte
-	resultChannel                 chan addResult
-	closeOnce                     sync.Once
-	closeErr                      error
 }
 
-type addResult struct {
-	offset int64
-	err    error
-}
-
-func (d *DBDriver) newTopic(db *sql.DB, topic string) (*Topic, error) {
+func (d *DBDriver) newTopic(db *sql.DB, topic string) (result *Topic, err error) {
 	// Assume topic name is valid
+	var stmts []*sql.Stmt
+	prepare := func(query string) *sql.Stmt {
+		if err != nil {
+			return nil
+		}
+		var stmt *sql.Stmt
+		stmt, err = db.Prepare(query)
+		if err == nil {
+			stmts = append(stmts, stmt)
+		}
+		return stmt
+	}
+	defer func() {
+		if err != nil {
+			for _, stmt := range stmts {
+				_ = stmt.Close()
+			}
+		}
+	}()
 
-	getLatestOffset, err := db.Prepare("SELECT MAX(offset) FROM " + topic)
+	getLatestOffset := prepare("SELECT MAX(offset) FROM " + topic)
+	getEarliestOffset := prepare("SELECT MIN(offset) FROM " + topic)
+	getLatestMessage := prepare("SELECT data, offset FROM " + topic + " ORDER BY offset DESC LIMIT 1")
+	getEarliestMessage := prepare("SELECT data, offset, time FROM " + topic + " ORDER BY offset ASC LIMIT 1")
+	getMessageAtOffset := prepare("SELECT data FROM " + topic + " WHERE offset = ?")
+	deleteMessagesUntilOffset := prepare("DELETE FROM " + topic + " WHERE offset <= ?")
+	addMessage := prepare("INSERT INTO " + topic + " (data) VALUES (?)")
 	if err != nil {
 		return nil, err
 	}
-
-	getEarliestOffset, err := db.Prepare("SELECT MIN(offset) FROM " + topic)
-	if err != nil {
-		return nil, err
-	}
-
-	getLatestMessage, err := db.Prepare("SELECT data, offset FROM " + topic + " ORDER BY offset DESC LIMIT 1")
-	if err != nil {
-		return nil, err
-	}
-
-	getEarliestMessage, err := db.Prepare("SELECT data, offset, time FROM " + topic + " ORDER BY offset ASC LIMIT 1")
-	if err != nil {
-		return nil, err
-	}
-
-	getMessageAtOffset, err := db.Prepare("SELECT data FROM " + topic + " WHERE offset = ?")
-	if err != nil {
-		return nil, err
-	}
-
-	deleteMessagesUntilOffset, err := db.Prepare("DELETE FROM " + topic + " WHERE offset <= ?")
-	if err != nil {
-		return nil, err
-	}
-
-	addMessage, err := db.Prepare("INSERT INTO " + topic + " (data) VALUES (?)")
-	if err != nil {
-		return nil, err
-	}
-
-	messagesChannel := make(chan []byte)
-	resultChannel := make(chan addResult, 1) // Buffered channel to avoid blocking
 
 	var maxOffset sql.NullInt64
-	err = getLatestOffset.QueryRow().Scan(&maxOffset)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			// No rows were returned - this means the topic is empty
-			maxOffset.Int64 = 0
-			maxOffset.Valid = true // Explicitly set Valid to true when assigning a value
-		} else {
-			return nil, fmt.Errorf("error retrieving from topic: %v", err)
-		}
-	}
-	if !maxOffset.Valid {
-		maxOffset.Int64 = 0
+	if err = getLatestOffset.QueryRow().Scan(&maxOffset); err != nil {
+		return nil, fmt.Errorf("error retrieving from topic: %v", err)
 	}
 
-	// Use maxOffset.Int64 where an int64 is required, checking maxOffset.Valid if necessary
-
-	result := &Topic{
+	return &Topic{
 		name:                          topic,
-		maxOffset:                     maxOffset.Int64,
+		maxOffset:                     maxOffset.Int64, // zero when empty
 		db:                            db,
 		dbMux:                         d.dbMux,
 		getLatestOffsetStmt:           getLatestOffset,
@@ -103,40 +78,34 @@ func (d *DBDriver) newTopic(db *sql.DB, topic string) (*Topic, error) {
 		getMessageAtOffsetStmt:        getMessageAtOffset,
 		deleteMessagesUntilOffsetStmt: deleteMessagesUntilOffset,
 		addMessageStmt:                addMessage,
-		messagesChannel:               messagesChannel,
-		resultChannel:                 resultChannel,
+	}, nil
+}
+
+// rlock acquires the shared lock and fails if the topic has been closed.
+func (t *Topic) rlock() error {
+	t.dbMux.RLock()
+	if t.closed {
+		t.dbMux.RUnlock()
+		return queue.ErrStoreClosed
 	}
+	return nil
+}
 
-	go func(result *Topic) {
-		for message := range messagesChannel { // This gracefully exits the loop if the channel is closed.
-			d.dbMux.Lock()
-			sqlResult, err := addMessage.Exec(message)
-			if err != nil {
-				log.Printf("Error adding message to topic %s: %v", topic, err)
-				result.resultChannel <- addResult{err: err}
-				d.dbMux.Unlock()
-				continue
-			}
-			maxOffset, err := sqlResult.LastInsertId()
-			if err == nil && maxOffset > result.maxOffset { // Corrected condition check order.
-				result.maxOffset = maxOffset
-			}
-			d.dbMux.Unlock()
-			if err != nil {
-				log.Printf("Error retrieving last insert ID for topic %s: %v", topic, err)
-				result.resultChannel <- addResult{err: err}
-			} else {
-				result.resultChannel <- addResult{offset: maxOffset}
-			}
-		}
-	}(result)
-
-	return result, nil
+// lock acquires the exclusive lock and fails if the topic has been closed.
+func (t *Topic) lock() error {
+	t.dbMux.Lock()
+	if t.closed {
+		t.dbMux.Unlock()
+		return queue.ErrStoreClosed
+	}
+	return nil
 }
 
 func (t *Topic) getLatestOffset() (int64, error) {
 	var nullableOffset sql.NullInt64 // Use sql.NullInt64 to handle NULL values
-	t.dbMux.RLock()
+	if err := t.rlock(); err != nil {
+		return -1, err
+	}
 	defer t.dbMux.RUnlock()
 	err := t.getLatestOffsetStmt.QueryRow().Scan(&nullableOffset)
 	if err != nil {
@@ -151,7 +120,9 @@ func (t *Topic) getLatestOffset() (int64, error) {
 
 func (t *Topic) getEarliestOffset() (int64, error) {
 	var nullableOffset sql.NullInt64 // Use sql.NullInt64 to handle NULL values
-	t.dbMux.RLock()
+	if err := t.rlock(); err != nil {
+		return -1, err
+	}
 	defer t.dbMux.RUnlock()
 	err := t.getEarliestOffsetStmt.QueryRow().Scan(&nullableOffset)
 	if err != nil {
@@ -167,7 +138,9 @@ func (t *Topic) getEarliestOffset() (int64, error) {
 func (t *Topic) getLatestMessage() ([]byte, int64, error) {
 	var data []byte
 	var offset int64
-	t.dbMux.RLock()
+	if err := t.rlock(); err != nil {
+		return nil, -1, err
+	}
 	defer t.dbMux.RUnlock()
 	err := t.getLatestMessageStmt.QueryRow().Scan(&data, &offset)
 	if err != nil {
@@ -184,7 +157,9 @@ func (t *Topic) getEarliestMessage() ([]byte, int64, time.Time, error) {
 	var data []byte
 	var offset int64
 	var time time.Time
-	t.dbMux.RLock()
+	if err := t.rlock(); err != nil {
+		return nil, -1, time, err
+	}
 	defer t.dbMux.RUnlock()
 	err := t.getEarliestMessageStmt.QueryRow().Scan(&data, &offset, &time)
 	if err != nil {
@@ -198,7 +173,9 @@ func (t *Topic) getEarliestMessage() ([]byte, int64, time.Time, error) {
 }
 
 func (t *Topic) getMessageAtOffset(offset int64) ([]byte, error) {
-	t.dbMux.RLock()
+	if err := t.rlock(); err != nil {
+		return nil, err
+	}
 	defer t.dbMux.RUnlock()
 
 	if offset > t.maxOffset {
@@ -218,7 +195,9 @@ func (t *Topic) getMessageAtOffset(offset int64) ([]byte, error) {
 }
 
 func (t *Topic) deleteMessagesUntilOffset(offset int64) error {
-	t.dbMux.Lock()
+	if err := t.lock(); err != nil {
+		return err
+	}
 	defer t.dbMux.Unlock()
 	_, err := t.deleteMessagesUntilOffsetStmt.Exec(offset)
 	if err != nil {
@@ -227,24 +206,34 @@ func (t *Topic) deleteMessagesUntilOffset(offset int64) error {
 	return nil
 }
 
-func (t *Topic) closeTopic() error {
-	t.closeOnce.Do(func() {
-		close(t.messagesChannel)
-		for _, stmt := range []*sql.Stmt{
-			t.getLatestOffsetStmt,
-			t.getEarliestOffsetStmt,
-			t.getLatestMessageStmt,
-			t.getEarliestMessageStmt,
-			t.getMessageAtOffsetStmt,
-			t.deleteMessagesUntilOffsetStmt,
-			t.addMessageStmt,
-		} {
-			if err := stmt.Close(); err != nil && t.closeErr == nil {
-				t.closeErr = err
-			}
+// closeTopicLocked closes the topic's statements. The caller must hold the
+// dbMux write lock so no operation is using them.
+func (t *Topic) closeTopicLocked() error {
+	if t.closed {
+		return nil
+	}
+	t.closed = true
+	var closeErr error
+	for _, stmt := range []*sql.Stmt{
+		t.getLatestOffsetStmt,
+		t.getEarliestOffsetStmt,
+		t.getLatestMessageStmt,
+		t.getEarliestMessageStmt,
+		t.getMessageAtOffsetStmt,
+		t.deleteMessagesUntilOffsetStmt,
+		t.addMessageStmt,
+	} {
+		if err := stmt.Close(); err != nil && closeErr == nil {
+			closeErr = err
 		}
-	})
-	return t.closeErr
+	}
+	return closeErr
+}
+
+func (t *Topic) closeTopic() error {
+	t.dbMux.Lock()
+	defer t.dbMux.Unlock()
+	return t.closeTopicLocked()
 }
 
 func (t *Topic) addMessage(data []byte) error {
@@ -253,9 +242,167 @@ func (t *Topic) addMessage(data []byte) error {
 }
 
 func (t *Topic) addMessageWithOffset(data []byte) (int64, error) {
-	t.messagesChannel <- data
-	result := <-t.resultChannel
-	return result.offset, result.err
+	offsets, err := t.addMessages(context.Background(), [][]byte{data})
+	if err != nil {
+		return 0, err
+	}
+	return offsets[0], nil
+}
+
+// addMessages inserts batch in one transaction and returns the assigned
+// offsets. Holding the write lock across the commit keeps offsets ordered and
+// makes a message visible to readers only after it is durable.
+func (t *Topic) addMessages(ctx context.Context, batch [][]byte) ([]int64, error) {
+	if len(batch) == 0 {
+		return nil, nil
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if err := t.lock(); err != nil {
+		return nil, err
+	}
+	defer t.dbMux.Unlock()
+
+	offsets := make([]int64, 0, len(batch))
+	if len(batch) == 1 {
+		// A single statement is its own implicit transaction.
+		offset, err := insertMessage(ctx, t.addMessageStmt, batch[0])
+		if err != nil {
+			return nil, fmt.Errorf("add message to topic %s: %w", t.name, err)
+		}
+		offsets = append(offsets, offset)
+	} else {
+		tx, err := t.db.BeginTx(ctx, nil)
+		if err != nil {
+			return nil, fmt.Errorf("begin batch for topic %s: %w", t.name, err)
+		}
+		stmt := tx.StmtContext(ctx, t.addMessageStmt)
+		for _, data := range batch {
+			offset, err := insertMessage(ctx, stmt, data)
+			if err != nil {
+				_ = tx.Rollback()
+				return nil, fmt.Errorf("add message to topic %s: %w", t.name, err)
+			}
+			offsets = append(offsets, offset)
+		}
+		if err := tx.Commit(); err != nil {
+			return nil, fmt.Errorf("commit batch for topic %s: %w", t.name, err)
+		}
+	}
+
+	if last := offsets[len(offsets)-1]; last > t.maxOffset {
+		t.maxOffset = last
+	}
+	return offsets, nil
+}
+
+func insertMessage(ctx context.Context, stmt *sql.Stmt, data []byte) (int64, error) {
+	result, err := stmt.ExecContext(ctx, data)
+	if err != nil {
+		return 0, err
+	}
+	return result.LastInsertId()
+}
+
+func (t *Topic) readMessages(ctx context.Context, fromOffset int64, limit int, maxBytes int64) ([]queue.Message, error) {
+	if limit <= 0 {
+		return nil, fmt.Errorf("read limit must be positive: %d", limit)
+	}
+	if err := t.rlock(); err != nil {
+		return nil, err
+	}
+	defer t.dbMux.RUnlock()
+
+	toOffset := int64(-1) // inclusive upper bound; -1 means bounded by limit only
+	if maxBytes > 0 {
+		var err error
+		toOffset, err = t.offsetWithinBytes(ctx, fromOffset, limit, maxBytes)
+		if err != nil {
+			return nil, err
+		}
+		if toOffset < fromOffset {
+			return nil, nil
+		}
+	}
+
+	query := "SELECT data, offset FROM " + t.name + " WHERE offset >= ? AND (? < 0 OR offset <= ?) ORDER BY offset ASC LIMIT ?"
+	rows, err := t.db.QueryContext(ctx, query, fromOffset, toOffset, toOffset, limit)
+	if err != nil {
+		return nil, fmt.Errorf("read messages from topic %s: %w", t.name, err)
+	}
+	defer rows.Close()
+
+	messages := make([]queue.Message, 0, min(limit, 256))
+	for rows.Next() {
+		var msg queue.Message
+		if err := rows.Scan(&msg.Message, &msg.Offset); err != nil {
+			return nil, fmt.Errorf("scan message from topic %s: %w", t.name, err)
+		}
+		messages = append(messages, msg)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("read messages from topic %s: %w", t.name, err)
+	}
+	return messages, nil
+}
+
+// offsetWithinBytes returns the last offset of the longest prefix, starting at
+// fromOffset and at most limit messages long, whose payloads fit in maxBytes.
+// The first message is always included. It reads lengths, not payloads, and
+// returns fromOffset-1 when no message exists.
+func (t *Topic) offsetWithinBytes(ctx context.Context, fromOffset int64, limit int, maxBytes int64) (int64, error) {
+	query := "SELECT offset, COALESCE(LENGTH(data), 0) FROM " + t.name + " WHERE offset >= ? ORDER BY offset ASC LIMIT ?"
+	rows, err := t.db.QueryContext(ctx, query, fromOffset, limit)
+	if err != nil {
+		return 0, fmt.Errorf("size messages in topic %s: %w", t.name, err)
+	}
+	defer rows.Close()
+
+	last := fromOffset - 1
+	var total int64
+	for first := true; rows.Next(); first = false {
+		var offset, size int64
+		if err := rows.Scan(&offset, &size); err != nil {
+			return 0, fmt.Errorf("scan message size from topic %s: %w", t.name, err)
+		}
+		total += size
+		if !first && total > maxBytes {
+			break
+		}
+		last = offset
+	}
+	if err := rows.Err(); err != nil {
+		return 0, fmt.Errorf("size messages in topic %s: %w", t.name, err)
+	}
+	return last, nil
+}
+
+func (t *Topic) stats(ctx context.Context) (queue.TopicStats, error) {
+	if err := t.rlock(); err != nil {
+		return queue.TopicStats{}, err
+	}
+	defer t.dbMux.RUnlock()
+
+	var stats queue.TopicStats
+	var earliest, latest sql.NullInt64
+	query := "SELECT COUNT(*), COALESCE(SUM(LENGTH(data)), 0), MIN(offset), MAX(offset) FROM " + t.name
+	if err := t.db.QueryRowContext(ctx, query).Scan(&stats.Count, &stats.Bytes, &earliest, &latest); err != nil {
+		return queue.TopicStats{}, fmt.Errorf("stat topic %s: %w", t.name, err)
+	}
+	if stats.Count == 0 {
+		return stats, nil
+	}
+	stats.EarliestOffset = earliest.Int64
+	stats.LatestOffset = latest.Int64
+
+	var oldest sql.NullTime
+	query = "SELECT time FROM " + t.name + " WHERE offset = ?"
+	if err := t.db.QueryRowContext(ctx, query, stats.EarliestOffset).Scan(&oldest); err != nil {
+		return queue.TopicStats{}, fmt.Errorf("stat topic %s: %w", t.name, err)
+	}
+	stats.OldestTime = oldest.Time.UTC()
+	return stats, nil
 }
 
 func (t *Topic) getMessagesAfterOffsetWithLimit(startOffset int64, limit int) ([]queue.Message, int64, error) {
@@ -270,7 +417,9 @@ func (t *Topic) getMessagesAfterOffsetWithLimit(startOffset int64, limit int) ([
 
 	query := fmt.Sprintf("SELECT data, offset FROM %s WHERE offset > ? ORDER BY offset ASC LIMIT ?", t.name)
 
-	t.dbMux.RLock()
+	if err := t.rlock(); err != nil {
+		return nil, startOffset, err
+	}
 	defer t.dbMux.RUnlock()
 
 	rows, err := t.db.Query(query, startOffset, effectiveLimit)

@@ -85,6 +85,55 @@ func main() {
 For explicit timeouts, message limits, or mTLS, use `client.New(client.Options{...})`.
 The old `config.ClientTLSConfig` name remains a deprecated alias for compatibility.
 
+## Embedding SMQ in a Go program
+
+The `embedded` package opens an SMQ database inside your process without starting a
+listener. It suits a durable local buffer, such as an outbox that forwards events
+upstream and deletes them after acknowledgement.
+
+```go
+q, err := embedded.Open("/var/lib/app/outbox.db", embedded.Options{})
+if err != nil {
+	log.Fatal(err)
+}
+defer q.Close()
+
+ctx := context.Background()
+if err := q.CreateTopic(ctx, "events"); err != nil { // idempotent
+	log.Fatal(err)
+}
+offset, err := q.Publish(ctx, "events", payload)
+offsets, err := q.PublishBatch(ctx, "events", payloads) // one transaction
+
+batch, err := q.Read(ctx, "events", fromOffset, embedded.ReadOptions{Limit: 500, MaxBytes: 4 << 20})
+// ...forward batch; after the upstream acknowledges the last offset:
+err = q.DeleteUntilOffset(ctx, "events", batch[len(batch)-1].Offset)
+
+stats, err := q.Stats(ctx, "events") // Count, Bytes, EarliestOffset, LatestOffset, OldestTime
+```
+
+Behavior to rely on:
+
+- Offsets start at 1, increase monotonically, and are never reused, even after deletion
+  or a restart. `Read` is inclusive of `fromOffset`; continue from the last offset plus one.
+- `Publish` and `PublishBatch` return after the commit. A batch is all-or-nothing.
+- `ReadOptions.MaxBytes` caps a batch's payload total, but the first message is always
+  returned so an oversized message cannot stall a reader.
+- The database uses WAL. `SyncNormal` (default) survives process crashes; the newest
+  commits can be lost on power loss. `SyncFull` fsyncs every commit.
+- A message can be at most 1,000,000,000 bytes, SQLite's default blob limit.
+- Only one process may open a database file at a time.
+
+To also expose the standard gRPC API to existing SMQ clients, register it on your own
+`grpc.Server`. Remote writes are opt-in:
+
+```go
+grpcServer := grpc.NewServer()
+q.RegisterGRPC(grpcServer, embedded.GRPCOptions{AllowRemoteWrites: false})
+```
+
+See [`embedded/example_test.go`](embedded/example_test.go) for a complete forwarding loop.
+
 ## Python client
 
 Install the published client:
@@ -134,6 +183,7 @@ wire/JSON schema changes.
 ```text
 api/smq/v1/             Versioned protobuf API and generated Go bindings
 client/                 Public Go client
+embedded/               Public in-process queue (no listener)
 cmd/smq/                Server executable
 internal/config/        Server process configuration
 internal/queue/         Storage contract and domain errors

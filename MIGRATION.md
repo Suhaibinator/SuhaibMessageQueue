@@ -10,6 +10,7 @@ data format are unchanged, so clients and servers can be upgraded independently.
 | --- | --- |
 | Go client using `client.NewClient` | None; the existing constructor remains supported |
 | Go code importing the old `proto` package | None immediately; migrate to `api/smq/v1` when convenient |
+| Go code embedding the old `server` package | Switch to the `embedded` package |
 | Python client using public `pysmq` imports | Use Python 3.9+ and reinstall the package |
 | Python code importing `pysmq.proto` directly | Change the import to `pysmq._generated`, or preferably use the public client API |
 | Tooling that reads `smq.proto` from this repository | Use `api/smq/v1/smq.proto` |
@@ -96,6 +97,32 @@ The old package remains as a deprecated compatibility layer and aliases the v1 m
 clients, servers, method constants, and service descriptor. This means an immediate import
 rewrite is optional. New code should use `smqv1` so a future API version can coexist with v1.
 
+### Embedding the server in-process
+
+The `server` package and its exported `Driver` field moved under `internal/`, so other
+modules can no longer import them. Use the `embedded` package instead. It opens the same
+database file, needs no listener, and returns real offsets:
+
+```go
+// Before
+s := server.NewServer("8097", "./smq.db")
+go s.Start()
+err := s.Driver.CreateTopic("events")
+
+// After
+q, err := embedded.Open("./smq.db", embedded.Options{})
+if err != nil {
+	log.Fatal(err)
+}
+defer q.Close()
+err = q.CreateTopic(ctx, "events")
+offset, err := q.Publish(ctx, "events", payload)
+```
+
+If remote clients still need the gRPC API, register it on a `grpc.Server` you own with
+`q.RegisterGRPC(grpcServer, embedded.GRPCOptions{AllowRemoteWrites: true})`. Remote writes
+are disabled unless you enable them. See the README section on embedding for the full API.
+
 ## Python clients
 
 ### Runtime and installation
@@ -176,6 +203,7 @@ Server errors now use stable gRPC status codes:
 | Topic is empty | `FAILED_PRECONDITION` |
 | Remote writes are disabled | `PERMISSION_DENIED` |
 | Request canceled or deadline exceeded | Matching context status |
+| Store is shutting down | `UNAVAILABLE` |
 | Unexpected storage failure | `INTERNAL` |
 
 Clients should branch on status codes or the public Python exception classes instead of
