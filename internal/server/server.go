@@ -77,6 +77,13 @@ func (s *Server) StreamProduce(sp smqv1.SuhaibMessageQueue_StreamProduceServer) 
 	}
 }
 
+// Register registers the SMQ service, backed by store, on registrar. The
+// caller owns both the store and the gRPC server lifecycle; closing the gRPC
+// server does not close the store.
+func Register(registrar grpc.ServiceRegistrar, store queue.Store, allowRemoteWrites bool) {
+	smqv1.RegisterSuhaibMessageQueueServer(registrar, &Server{driver: store, allowRemoteWrites: allowRemoteWrites})
+}
+
 func (s *Server) GetDriver() queue.Store {
 	return s.driver
 }
@@ -342,6 +349,8 @@ func grpcError(err error) error {
 		return status.Error(codes.PermissionDenied, err.Error())
 	case errors.Is(err, queue.ErrInvalidTopic):
 		return status.Error(codes.InvalidArgument, err.Error())
+	case errors.Is(err, queue.ErrStoreClosed):
+		return status.Error(codes.Unavailable, err.Error())
 	default:
 		return status.Error(codes.Internal, "internal server error")
 	}

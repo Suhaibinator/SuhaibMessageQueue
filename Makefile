@@ -12,7 +12,7 @@ check-generated: generate
 	git diff --exit-code -- api/smq/v1 python/src/pysmq/_generated
 
 fmt:
-	gofmt -w $$(find api client cmd config errors examples internal proto -name '*.go' -type f)
+	gofmt -w $$(find api client cmd config embedded errors examples internal proto -name '*.go' -type f)
 	cd python && $(PYTHON_BIN) -m ruff format src tests ../examples/python ../scripts/fix_python_proto_import.py
 
 lint:

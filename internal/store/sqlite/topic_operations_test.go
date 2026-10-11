@@ -55,11 +55,6 @@ func TestNewTopic(t *testing.T) {
 	if topic.addMessageStmt == nil {
 		t.Fatal("Expected addMessageStmt to be initialized")
 	}
-
-	// Verify message channel was created
-	if topic.messagesChannel == nil {
-		t.Fatal("Expected messagesChannel to be initialized")
-	}
 }
 
 func TestTopicGetLatestOffset(t *testing.T) {
